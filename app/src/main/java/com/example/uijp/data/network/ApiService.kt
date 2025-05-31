@@ -1,13 +1,18 @@
 package com.example.uijp.data.network
 
 import com.example.uijp.data.model.AddBloodSugarRequest
+import com.example.uijp.data.model.AddFoodRequest
+import com.example.uijp.data.model.AddFoodResponse
 import com.example.uijp.data.model.ApiResponse
 import com.example.uijp.data.model.BloodSugarRecord
 import com.example.uijp.data.model.DashboardResponse
+import com.example.uijp.data.model.FoodListResponse
 import com.example.uijp.data.model.HistoryResponse
 import com.example.uijp.data.model.LoginRequest
 import com.example.uijp.data.model.LoginResponse
+import com.example.uijp.data.model.SugarTrackerResponse
 import com.example.uijp.data.model.UpdateBloodSugarRequest
+import com.example.uijp.data.model.UpdateQuantityRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -43,5 +48,34 @@ interface BloodSugarApiService {
     @DELETE("api/blood-sugar/{id}")
     suspend fun deleteRecord(
         @Path("id") id: Int
+    ): Response<ApiResponse<String>>
+}
+
+interface SugarTrackerApiService {
+
+    @GET("api/sugar-tracker/daily-tracker")
+    suspend fun getDailyTracker(
+        @Query("date") date: String? = null
+    ): Response<SugarTrackerResponse>
+
+    @GET("api/sugar-tracker/foods")
+    suspend fun getFoodList(
+        @Query("search") search: String? = null
+    ): Response<FoodListResponse>
+
+    @POST("api/sugar-tracker/add-food")
+    suspend fun addFoodToTracker(
+        @Body request: AddFoodRequest
+    ): Response<AddFoodResponse>
+
+    @PUT("api/sugar-tracker/intake/{intake_id}/quantity")
+    suspend fun updateFoodQuantity(
+        @Path("intake_id") intakeId: Int,
+        @Body request: UpdateQuantityRequest
+    ): Response<ApiResponse<String>>
+
+    @DELETE("api/sugar-tracker/intake/{intake_id}")
+    suspend fun removeFoodFromTracker(
+        @Path("intake_id") intakeId: Int
     ): Response<ApiResponse<String>>
 }

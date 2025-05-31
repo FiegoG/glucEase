@@ -2,6 +2,7 @@ package com.example.uijp.view.tracker
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,21 +19,35 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.uijp.R
+import com.example.uijp.data.model.Food
+import com.example.uijp.viewmodel.FoodTrackerViewModel
+import com.example.uijp.viewmodel.FoodTrackerViewModelFactory
+import com.example.uijp.viewmodel.UiState
+import androidx.compose.ui.platform.LocalContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TambahMakananScreen(navController: NavController) {
-    val makananList = listOf(
-        Makanan("Nasi Putih", "0.1g", "45g", "4g", R.drawable.nasiputih),
-        Makanan("Roti Cokelat", "8g", "30g", "5g", R.drawable.nasiputih),
-        Makanan("Teh Manis", "12g", "12g", null, R.drawable.nasiputih),
-        Makanan("Nasi Putih", "0.1g", "45g", "4g", R.drawable.nasiputih),
-        Makanan("Roti Cokelat", "8g", "30g", "5g", R.drawable.nasiputih),
-        Makanan("Teh Manis", "12g", "12g", null, R.drawable.nasiputih),
-    )
+    val context = LocalContext.current
+    val viewModelFactory = remember { FoodTrackerViewModelFactory(context) }
+    val viewModel: FoodTrackerViewModel = viewModel(factory = viewModelFactory)
 
-    var searchQuery by remember { mutableStateOf("") }
+    // Observe states
+    val foodListState by viewModel.foodListState.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isActionLoading by viewModel.isActionLoading.collectAsState()
+    val message by viewModel.message.collectAsState()
+
+    // Show snackbar for messages
+    LaunchedEffect(message) {
+        message?.let {
+            // Handle success message - you can show snackbar here if needed
+            viewModel.clearMessage()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -42,6 +57,7 @@ fun TambahMakananScreen(navController: NavController) {
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -62,10 +78,19 @@ fun TambahMakananScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Search Field
         OutlinedTextField(
             value = searchQuery,
-            onValueChange = { searchQuery = it },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            onValueChange = { query ->
+                viewModel.updateSearchQuery(query)
+            },
+            leadingIcon = {
+                IconButton(onClick = {
+                    viewModel.searchFoods(searchQuery)
+                }) {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                }
+            },
             placeholder = { Text("Cari makanan...") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -75,72 +100,174 @@ fun TambahMakananScreen(navController: NavController) {
                 unfocusedBorderColor = Color.LightGray,
                 focusedContainerColor = Color(0xFFF6F6F6),
                 unfocusedContainerColor = Color(0xFFF6F6F6)
-            )
+            ),
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    TextButton(
+                        onClick = { viewModel.searchFoods(searchQuery) }
+                    ) {
+                        Text("Cari", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "List makanan yang pernah dikonsumsi",
+            text = "List makanan yang tersedia",
             fontSize = 14.sp,
             color = Color.Gray
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        LazyColumn {
-            items(makananList.filter {
-                it.nama.contains(searchQuery, ignoreCase = true)
-            }) { makanan ->
-                MakananItem(makanan = makanan)
+        // Content based on state
+        when (val state = foodListState) {
+            is UiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        }
-    }
-}
-
-@Composable
-fun MakananItem(makanan: Makanan) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Image(
-            painter = painterResource(id = makanan.imageRes),
-            contentDescription = makanan.nama,
-            modifier = Modifier
-                .size(50.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFFFE5E0))
-                .padding(4.dp)
-        )
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column {
-            Text(
-                text = makanan.nama,
-                fontSize = 16.sp,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Gula: ${makanan.gula}", fontSize = 12.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Karbo: ${makanan.karbo}", fontSize = 12.sp, color = Color.Gray)
-                makanan.protein?.let {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Protein: $it", fontSize = 12.sp, color = Color.Gray)
+            is UiState.Success -> {
+                val foods = state.data
+                if (foods.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Tidak ada makanan ditemukan",
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn {
+                        items(foods) { food ->
+                            FoodItem(
+                                food = food,
+                                isLoading = isActionLoading,
+                                onAddClick = {
+                                    viewModel.addFoodToTracker(food.id) {
+                                        navController.popBackStack()
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            is UiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = state.message,
+                            color = Color.Red
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.loadFoodList() }
+                        ) {
+                            Text("Coba Lagi")
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-data class Makanan(
-    val nama: String,
-    val gula: String,
-    val karbo: String,
-    val protein: String?,
-    val imageRes: Int
-)
+@Composable
+fun FoodItem(
+    food: Food,
+    isLoading: Boolean,
+    onAddClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable(enabled = !isLoading) { onAddClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Food Image (using placeholder for now)
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFFFE5E0)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.nasiputih), // Default image
+                    contentDescription = food.name,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Food Details
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = food.name,
+                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = food.portion_detail,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Gula: ${String.format("%.1f", food.sugar)}g", fontSize = 12.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Karbo: ${String.format("%.1f", food.carbohydrate)}g", fontSize = 12.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Protein: ${String.format("%.1f", food.protein)}g", fontSize = 12.sp, color = Color.Gray)
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text("Kalori: ${String.format("%.0f", food.calories)} kcal", fontSize = 12.sp, color = Color.Gray)
+            }
+
+            // Add Button
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            } else {
+                Button(
+                    onClick = onAddClick,
+                    modifier = Modifier.height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp)
+                ) {
+                    Text("Tambah", fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
