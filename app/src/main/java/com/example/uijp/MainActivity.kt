@@ -4,10 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import com.example.konsultasiprofil.UI.Screen.KonsultasiUi
@@ -41,9 +43,18 @@ import com.example.uijp.view.theme.UijpTheme
 import com.example.uijp.view.ReminderScreen
 import com.example.uijp.view.ResetPasswordScreen
 import com.example.uijp.view.VerificationScreen
+import com.example.uijp.viewmodel.BloodSugarViewModel
+import com.example.uijp.viewmodel.BloodSugarViewModelFactory
+import com.example.uijp.viewmodel.LoginViewModel
+import com.example.uijp.viewmodel.LoginViewModelFactory
 
 
 class MainActivity : ComponentActivity() {
+
+    private val loginViewModel: LoginViewModel by viewModels {
+        LoginViewModelFactory(applicationContext) // Gunakan applicationContext
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -60,6 +71,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
+
+    val context = LocalContext.current
+
+    // Buat factory untuk LoginViewModel
+    val loginViewModelFactory = remember { LoginViewModelFactory(context.applicationContext) }
+    // Buat factory untuk BloodSugarViewModel
+    val bloodSugarViewModelFactory = remember { BloodSugarViewModelFactory(context.applicationContext) }
+
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
         composable("splash") { SplashScreen(navController) }
         composable("onboard1") { Onboard1(navController) }
@@ -79,7 +98,6 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("tracker") { TrackerGulaScreen(navController)}
 
         composable("guladarah") {
-            val viewModel: GulaDarahViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
             GulaDarahPage(navController = navController)
         }
 
@@ -96,7 +114,7 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("paymentSuccess") { PaymentSuccessScreen(navController) }
 
         composable("insert") {
-            val viewModel: GulaDarahViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val viewModel: BloodSugarViewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = bloodSugarViewModelFactory)
             InsertPages(viewModel = viewModel, navController = navController)
         }
 

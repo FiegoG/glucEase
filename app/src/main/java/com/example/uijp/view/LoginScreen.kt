@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -27,13 +28,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.uijp.R
+import com.example.uijp.data.auth.AuthTokenManager
 import com.example.uijp.viewmodel.LoginViewModel
+import com.example.uijp.viewmodel.LoginViewModelFactory
 
 @Composable
 fun LoginScreen(
-    navController: NavController,
-    viewModel: LoginViewModel = viewModel()
+    navController: NavController
 ) {
+    // Dapatkan Context dari Composable
+    val context = LocalContext.current
+    // Buat instance factory dengan applicationContext
+    val factory = remember { LoginViewModelFactory(context.applicationContext) }
+    // Inisialisasi ViewModel menggunakan factory
+    val viewModel: LoginViewModel = viewModel(factory = factory)
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }

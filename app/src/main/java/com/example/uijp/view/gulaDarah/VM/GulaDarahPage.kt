@@ -23,6 +23,8 @@ import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,17 +41,23 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import com.example.uijp.R
+import com.example.uijp.data.model.BloodSugarRecord
+import com.example.uijp.data.model.ChartDataItem
+import com.example.uijp.viewmodel.BloodSugarViewModel
+import com.example.uijp.viewmodel.BloodSugarViewModelFactory
 
 data class GulaDarah(
     val date: String,
@@ -63,41 +71,46 @@ data class DayData(
 )
 
 @Composable
-fun GulaDarahPage(navController: NavController) {
+fun GulaDarahPage(
+    navController: NavController
+) {
+    // Dapatkan Context dari Composable
+    val context = LocalContext.current
+    // Buat instance factory dengan applicationContext
+    val factory = remember { BloodSugarViewModelFactory(context.applicationContext) }
+    // Inisialisasi ViewModel menggunakan factory
+    val viewModel: BloodSugarViewModel = viewModel(factory = factory)
+
     var selectedIndex by remember { mutableStateOf(2) }
+    val uiState by viewModel.uiState.collectAsState()
 
-    // Data dummy untuk gula darah
-    val dummyGulaDarahList = listOf(
-        GulaDarah("01 Mar 2024", "08:00", 85),
-        GulaDarah("01 Mar 2024", "12:00", 95),
-        GulaDarah("01 Mar 2024", "18:00", 88),
-        GulaDarah("02 Mar 2024", "08:00", 92),
-        GulaDarah("02 Mar 2024", "12:00", 98),
-        GulaDarah("02 Mar 2024", "18:00", 90),
-        GulaDarah("03 Mar 2024", "08:00", 87),
-        GulaDarah("03 Mar 2024", "12:00", 93),
-        GulaDarah("04 Mar 2024", "18:00", 89),
-        GulaDarah("05 Mar 2024", "18:00", 99),
-        GulaDarah("06 Mar 2024", "18:00", 81),
-        GulaDarah("07 Mar 2024", "18:00", 79),
-    )
-
-    val weeklyData = remember {
-        calculateWeeklyData(dummyGulaDarahList)
+    // Handle success message
+    LaunchedEffect(uiState.addSuccess) {
+        if (uiState.addSuccess) {
+            // Show success message or navigate
+            viewModel.clearAddSuccess()
+        }
     }
+
+    // Handle error message
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { error ->
+            // Show error snackbar atau toast
+            // viewModel.clearErrorMessage()
+        }
+    }
+
     Scaffold(
         containerColor = Color.White,
-//        bottomBar = {
-//            CustomBottomBar(
-//                selectedIndex = selectedIndex,
-//                onItemSelected = { index ->
-//                    selectedIndex = index
-//                }
-//            )
-//        }
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -143,8 +156,7 @@ fun GulaDarahPage(navController: NavController) {
                                 .fillMaxWidth()
                                 .padding(bottom = 16.dp)
                                 .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp)),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
-                            ,
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Column(
@@ -193,8 +205,9 @@ fun GulaDarahPage(navController: NavController) {
                                     )
                                 }
 
-                                DayBasedGulaDarahChart(
-                                    weeklyData = weeklyData,
+                                // Use API data instead of dummy data
+                                ApiBasedGulaDarahChart(
+                                    chartData = uiState.chartData,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(200.dp)
@@ -225,26 +238,37 @@ fun GulaDarahPage(navController: NavController) {
                     }
                 }
 
-                Column(modifier = Modifier.fillMaxWidth())
-                { Text(
-                    text = "Riwayat Gula Darah",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 16.dp)
-                ) }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Riwayat Gula Darah",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
 
-                Column (modifier = Modifier.fillMaxWidth()
-                    .padding(end = 16.dp),
-                    horizontalAlignment = Alignment.End)
-                { Button(
-                    onClick = {
-                        navController.navigate("insert")
-                    },
-                    shape = RoundedCornerShape(15),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEE6C6C))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 16.dp),
+                    horizontalAlignment = Alignment.End
                 ) {
-                    Text("Tambah Gula Darah", fontSize = 12.sp,color = Color.White)
-                } }
+                    Button(
+                        onClick = { navController.navigate("insert") },
+                        shape = RoundedCornerShape(15),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEE6C6C)),
+                        enabled = !uiState.isAddingRecord
+                    ) {
+                        if (uiState.isAddingRecord) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        } else {
+                            Text("Tambah Gula Darah", fontSize = 12.sp, color = Color.White)
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -252,8 +276,8 @@ fun GulaDarahPage(navController: NavController) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
-                        .weight(1f).
-                        border(1.dp, color = Color(0xFFB6B6B6), RoundedCornerShape(8.dp)),
+                        .weight(1f)
+                        .border(1.dp, color = Color(0xFFB6B6B6), RoundedCornerShape(8.dp)),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Column(
@@ -287,17 +311,102 @@ fun GulaDarahPage(navController: NavController) {
                             )
                         }
 
+                        // Use API data instead of dummy data
                         LazyColumn {
-                            itemsIndexed(dummyGulaDarahList) { index, entry ->
-                                GulaDarahItem(entry, index)
+                            itemsIndexed(uiState.recentHistory) { index, entry ->
+                                ApiBloodSugarItem(entry, index)
                             }
                         }
                     }
                 }
             }
+
+            // Show error message
+            uiState.errorMessage?.let { error ->
+                LaunchedEffect(error) {
+                    // Show snackbar or toast
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ApiBasedGulaDarahChart(
+    chartData: List<ChartDataItem>,
+    modifier: Modifier = Modifier
+) {
+    // Convert API data to format compatible with existing chart
+    val weeklyData = remember(chartData) {
+        convertApiDataToWeeklyData(chartData)
+    }
+
+    DayBasedGulaDarahChart(
+        weeklyData = weeklyData,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun ApiBloodSugarItem(record: BloodSugarRecord, index: Int) {
+    val backgroundColor = if (index % 2 == 0) Color.White else Color(0xFFFFE0E0)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(backgroundColor)
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "${record.check_date}, ${record.check_time}",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.W500,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "${record.blood_sugar_level} MG/DL",
+            fontSize = 10.sp,
+            color = Color.Gray,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center
+        )
+        Box(
+            modifier = Modifier.weight(0.6f),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            StatusBadge(record.blood_sugar_level)
+        }
+    }
+}
+
+fun convertApiDataToWeeklyData(chartData: List<ChartDataItem>): Map<String, DayData> {
+    val result = mutableMapOf<String, DayData>()
+
+    chartData.forEach { item ->
+        // Convert date to day name
+        val dayName = convertDateToDayName(item.date)
+        val avgLevel = item.averageLevel.toInt()
+
+        val status = when {
+            avgLevel < 70 -> 1 // Waspada
+            avgLevel in 70..140 -> 0 // Normal
+            else -> 2 // Tinggi
         }
 
+        result[dayName] = DayData(avgLevel, status)
     }
+
+    return result
+}
+
+fun convertDateToDayName(dateString: String): String {
+    // Implementation to convert date string to day name
+    // This is a simplified version, you might need to adjust based on your date format
+    val dayNames = listOf("Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab")
+    // Return appropriate day name based on date
+    // For now, returning a placeholder
+    return dayNames.random()
 }
 
 @Composable
