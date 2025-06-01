@@ -128,9 +128,9 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
             )
         }
 
-        composable("detail/{judul}") { backStackEntry ->
-            val judul = backStackEntry.arguments?.getString("judul") ?: ""
-            DetailArtikelScreen(judul = judul, navController = navController)
+        composable("detail/{articleId}") { backStackEntry ->
+            val articleId = backStackEntry.arguments?.getString("articleId")?.toIntOrNull() ?: 0
+            DetailArtikelScreen(articleId = articleId, navController = navController)
         }
 
         composable("detailDokter") {

@@ -4,6 +4,9 @@ import com.example.uijp.data.model.AddBloodSugarRequest
 import com.example.uijp.data.model.AddFoodRequest
 import com.example.uijp.data.model.AddFoodResponse
 import com.example.uijp.data.model.ApiResponse
+import com.example.uijp.data.model.ArticleDetailResponse
+import com.example.uijp.data.model.ArticleHomepageResponse
+import com.example.uijp.data.model.ArticleResponse
 import com.example.uijp.data.model.BloodSugarRecord
 import com.example.uijp.data.model.DashboardResponse
 import com.example.uijp.data.model.FoodListResponse
@@ -78,4 +81,20 @@ interface SugarTrackerApiService {
     suspend fun removeFoodFromTracker(
         @Path("intake_id") intakeId: Int
     ): Response<ApiResponse<String>>
+}
+
+interface ArticleApiService {
+
+    @GET("articles")
+    suspend fun getArticlesHomepage(): Response<ArticleHomepageResponse>
+
+    @GET("articles/genre/{genre}")
+    suspend fun getArticlesByGenre(
+        @Path("genre") genre: String
+    ): Response<ArticleResponse>
+
+    @GET("articles/{id}")
+    suspend fun getArticleDetail(
+        @Path("id") id: Int
+    ): Response<ArticleDetailResponse>
 }

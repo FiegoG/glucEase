@@ -88,5 +88,8 @@ dependencies {
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // OkHttp Logging Interceptor
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") // Ganti versi sesuai yang terbaru atau yang kompatibel
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    //coil
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

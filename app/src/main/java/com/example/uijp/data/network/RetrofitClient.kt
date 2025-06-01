@@ -65,6 +65,10 @@ object RetrofitClient {
         retrofit.create(SugarTrackerApiService::class.java)
     }
 
+    val articleApiService: ArticleApiService by lazy {
+        retrofit.create(ArticleApiService::class.java)
+    }
+
     private fun getAuthToken(): String? {
         return authTokenManager?.getAccessToken()
     }
