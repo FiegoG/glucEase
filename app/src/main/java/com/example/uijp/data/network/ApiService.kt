@@ -9,10 +9,14 @@ import com.example.uijp.data.model.ArticleHomepageResponse
 import com.example.uijp.data.model.ArticleResponse
 import com.example.uijp.data.model.BloodSugarRecord
 import com.example.uijp.data.model.DashboardResponse
+import com.example.uijp.data.model.DoctorDetailResponse
+import com.example.uijp.data.model.DoctorsResponse
 import com.example.uijp.data.model.FoodListResponse
 import com.example.uijp.data.model.HistoryResponse
 import com.example.uijp.data.model.LoginRequest
 import com.example.uijp.data.model.LoginResponse
+import com.example.uijp.data.model.MissionDetailResponse
+import com.example.uijp.data.model.MissionsResponse
 import com.example.uijp.data.model.SugarTrackerResponse
 import com.example.uijp.data.model.UpdateBloodSugarRequest
 import com.example.uijp.data.model.UpdateQuantityRequest
@@ -97,4 +101,22 @@ interface ArticleApiService {
     suspend fun getArticleDetail(
         @Path("id") id: Int
     ): Response<ArticleDetailResponse>
+}
+
+interface ConsultationApiService {
+    @GET("api/consultation/doctors")
+    suspend fun getAllDoctors(): Response<DoctorsResponse>
+
+    @GET("api/consultation/doctor/{id}")
+    suspend fun getDoctorDetail(
+        @Path("id") doctorId: Int
+    ): Response<DoctorDetailResponse>
+}
+
+interface MissionApiService {
+    @GET("api/missions/") // Endpoint from your Node.js routes
+    suspend fun getUserMissions(): Response<MissionsResponse>
+
+    @GET("api/missions/{id}") // Endpoint dari Node.js: /api/missions/:id
+    suspend fun getMissionDetail(@Path("id") missionId: String): Response<MissionDetailResponse>
 }

@@ -175,22 +175,6 @@ fun DetailArtikelScreen(
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                         }
 
-                        // Like button
-                        IconButton(
-                            onClick = { /* TODO: Like action */ },
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(16.dp)
-                                .background(Color(0xFFFFD9CF), shape = CircleShape)
-                                .size(56.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FavoriteBorder,
-                                contentDescription = "Like",
-                                tint = Color(0xFFE86A33)
-                            )
-                        }
-
                         // Article title overlay
                         Text(
                             text = article.title,

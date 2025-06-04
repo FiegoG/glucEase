@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,7 +72,8 @@ fun ArtikelKategoriScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {
                 navController.navigate("artikel") {
@@ -87,14 +89,14 @@ fun ArtikelKategoriScreen(
                     modifier = Modifier.size(24.dp)
                 )
             }
-        }
 
-        // Judul Halaman
-        Text(
-            text = kategoriName,
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
+            // Judul Halaman
+            Text(
+                text = kategoriName,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Start
+            )
+        }
 
         // Search Bar (belum aktif)
         OutlinedTextField(

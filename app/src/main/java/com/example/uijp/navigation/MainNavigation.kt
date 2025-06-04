@@ -9,7 +9,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.konsultasiprofil.UI.Screen.KonsultasiUi
+import com.example.uijp.view.konsultasi.*
 import com.example.uijp.view.artikel.ArtikelScreen
 import com.example.uijp.view.laporan.LaporanMingguanPage
 import com.example.uijp.view.tracker.TrackerGulaScreen
