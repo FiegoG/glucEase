@@ -1,5 +1,8 @@
 package com.example.uijp.gulaDarah.ui
 
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +46,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -58,6 +62,11 @@ import com.example.uijp.data.model.BloodSugarRecord
 import com.example.uijp.data.model.ChartDataItem
 import com.example.uijp.viewmodel.BloodSugarViewModel
 import com.example.uijp.viewmodel.BloodSugarViewModelFactory
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 data class GulaDarah(
     val date: String,
@@ -70,6 +79,7 @@ data class DayData(
     val status: Int
 )
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun GulaDarahPage(
     navController: NavController
@@ -197,6 +207,7 @@ fun GulaDarahPage(
 
                                     Spacer(modifier = Modifier.weight(1f))
 
+//
                                 }
 
                                 // Use API data instead of dummy data
@@ -325,25 +336,55 @@ fun GulaDarahPage(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ApiBasedGulaDarahChart(
     chartData: List<ChartDataItem>,
     modifier: Modifier = Modifier
 ) {
-    // Convert API data to format compatible with existing chart
-    val weeklyData = remember(chartData) {
-        convertApiDataToWeeklyData(chartData)
-    }
-
+//    // Convert API data to format compatible with existing chart
+//    val weeklyData = remember(chartData) {
+//        convertApiDataToWeeklyData(chartData)
+//    }
+//
+//    DayBasedGulaDarahChart(
+//        weeklyData = weeklyData,
+//        modifier = modifier
+//    )
     DayBasedGulaDarahChart(
-        weeklyData = weeklyData,
+        weeklyData = chartData,
         modifier = modifier
     )
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ApiBloodSugarItem(record: BloodSugarRecord, index: Int) {
     val backgroundColor = if (index % 2 == 0) Color.White else Color(0xFFFFE0E0)
+
+    val inputTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val outputTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    val inputFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+    val outputFormatter = DateTimeFormatter.ofPattern("dd MM yyyy")
+
+    val formattedDate = try {
+        val date = OffsetDateTime.parse(record.check_date, inputFormatter)
+        date.toLocalDate().format(outputFormatter)
+    } catch (e: Exception) {
+        Log.e("BloodSugarItem", "Error parsing date", e)
+        record.check_date
+    }
+
+
+    val formattedTime = try {
+        LocalTime.parse(record.check_time, inputTimeFormatter).format(outputTimeFormatter)
+    } catch (e: Exception) {
+        record.check_time
+    }
+
+    Log.d("BloodSugarItem", "formattedDate: $formattedDate, formattedTime: $formattedTime")
+
 
     Row(
         modifier = Modifier
@@ -353,7 +394,7 @@ fun ApiBloodSugarItem(record: BloodSugarRecord, index: Int) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "${record.check_date}, ${record.check_time}",
+            text = "$formattedDate, $formattedTime",
             fontSize = 10.sp,
             fontWeight = FontWeight.W500,
             modifier = Modifier.weight(1f)
@@ -403,26 +444,46 @@ fun convertDateToDayName(dateString: String): String {
     return dayNames.random()
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
+fun getDayLabel(date: LocalDate): String {
+    return when (date.dayOfWeek) {
+        java.time.DayOfWeek.MONDAY -> "Sen"
+        java.time.DayOfWeek.TUESDAY -> "Sel"
+        java.time.DayOfWeek.WEDNESDAY -> "Rab"
+        java.time.DayOfWeek.THURSDAY -> "Kam"
+        java.time.DayOfWeek.FRIDAY -> "Jum"
+        java.time.DayOfWeek.SATURDAY -> "Sab"
+        java.time.DayOfWeek.SUNDAY -> "Min"
+    }
+}
+
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DayBasedGulaDarahChart(
-    weeklyData: Map<String, DayData>,
+    weeklyData: List<ChartDataItem>,
     modifier: Modifier = Modifier
 ) {
-    val days = listOf("Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab")
     val lineColor = Color(0xFFA8CEF1)
+    val minValue = 50f
+    val maxValue = 200f
+    val step = 20
 
-    Box(modifier = modifier
-        .background(color = Color.White)) {
+    val valueRange = maxValue - minValue
+
+    val referenceValues = (minValue.toInt()..maxValue.toInt() step step).toList()
+
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val sortedData = weeklyData.sortedBy { LocalDate.parse(it.date, formatter) }
+
+    Box(modifier = modifier.background(Color.White)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
             val height = size.height - 40f
+            val horizontalStep = width / sortedData.size
 
-            val horizontalStep = width / 7
-            val maxValue = 200f
-            val minValue = 40f
-            val valueRange = maxValue - minValue
-
-            listOf(40, 60, 80, 100, 120, 140, 160, 180, 200).forEach { value ->
+            // Garis horizontal (garis nilai referensi)
+            referenceValues.forEach { value ->
                 val y = height - ((value - minValue) / valueRange * height)
 
                 drawLine(
@@ -446,12 +507,18 @@ fun DayBasedGulaDarahChart(
 
             val points = mutableListOf<Pair<Offset, Int>>()
 
-            days.forEachIndexed { index, day ->
+            sortedData.forEachIndexed { index, item ->
                 val x = index * horizontalStep + horizontalStep / 2
-                val dayData = weeklyData[day]
+                val y = height - (((item.averageLevel - minValue) / valueRange) * height).toFloat()
+                val status = getStatus(item.averageLevel)
+
+                points.add(Offset(x, y) to status)
+
+                val date = LocalDate.parse(item.date, formatter)
+                val dayLabel = getDayLabel(date)
 
                 drawContext.canvas.nativeCanvas.drawText(
-                    day,
+                    dayLabel,
                     x,
                     height + 30f,
                     Paint().asFrameworkPaint().apply {
@@ -460,19 +527,15 @@ fun DayBasedGulaDarahChart(
                         textAlign = android.graphics.Paint.Align.CENTER
                     }
                 )
-
-                dayData?.let {
-                    val y = height - ((it.value - minValue) / valueRange * height)
-                    points.add(Pair(Offset(x, y), it.status))
-                }
             }
 
+            // Gambar garis koneksi antar titik
             if (points.size > 1) {
-                val path = Path()
-
-                path.moveTo(points[0].first.x, points[0].first.y)
-                for (i in 1 until points.size) {
-                    path.lineTo(points[i].first.x, points[i].first.y)
+                val path = Path().apply {
+                    moveTo(points[0].first.x, points[0].first.y)
+                    for (i in 1 until points.size) {
+                        lineTo(points[i].first.x, points[i].first.y)
+                    }
                 }
 
                 drawPath(
@@ -482,6 +545,7 @@ fun DayBasedGulaDarahChart(
                 )
             }
 
+            // Gambar titik per hari
             points.forEach { (point, status) ->
                 val pointColor = when (status) {
                     0 -> Color(0xFF6DD6D3) // Normal
@@ -489,21 +553,120 @@ fun DayBasedGulaDarahChart(
                     else -> Color(0xFFFF6666) // Tinggi
                 }
 
-                drawCircle(
-                    color = Color.White,
-                    radius = 10f,
-                    center = point
-                )
-
-                drawCircle(
-                    color = pointColor,
-                    radius = 8f,
-                    center = point
-                )
+                drawCircle(Color.White, radius = 10f, center = point)
+                drawCircle(pointColor, radius = 8f, center = point)
             }
         }
     }
 }
+
+fun getStatus(avg: Double): Int = when {
+    avg < 80 -> 0 // Normal
+    avg < 100 -> 1 // Waspada
+    else -> 2 // Tinggi
+}
+
+//@Composable
+//fun DayBasedGulaDarahChart(
+//    weeklyData: Map<String, DayData>,
+//    modifier: Modifier = Modifier
+//) {
+//    val days = listOf("Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab")
+//    val lineColor = Color(0xFFA8CEF1)
+//
+//    Box(modifier = modifier
+//        .background(color = Color.White)) {
+//        Canvas(modifier = Modifier.fillMaxSize()) {
+//            val width = size.width
+//            val height = size.height - 40f
+//
+//            val horizontalStep = width / 7
+//            val maxValue = 120f
+//            val minValue = 40f
+//            val valueRange = maxValue - minValue
+//
+//            listOf(40, 60, 80, 100).forEach { value ->
+//                val y = height - ((value - minValue) / valueRange * height)
+//
+//                drawLine(
+//                    color = Color.LightGray.copy(alpha = 0.5f),
+//                    start = Offset(0f, y),
+//                    end = Offset(width, y),
+//                    strokeWidth = 1f
+//                )
+//
+//                drawContext.canvas.nativeCanvas.drawText(
+//                    value.toString(),
+//                    10f,
+//                    y - 5f,
+//                    Paint().asFrameworkPaint().apply {
+//                        color = android.graphics.Color.GRAY
+//                        textSize = 30f
+//                        textAlign = android.graphics.Paint.Align.LEFT
+//                    }
+//                )
+//            }
+//
+//            val points = mutableListOf<Pair<Offset, Int>>()
+//
+//            days.forEachIndexed { index, day ->
+//                val x = index * horizontalStep + horizontalStep / 2
+//                val dayData = weeklyData[day]
+//
+//                drawContext.canvas.nativeCanvas.drawText(
+//                    day,
+//                    x,
+//                    height + 30f,
+//                    Paint().asFrameworkPaint().apply {
+//                        color = android.graphics.Color.GRAY
+//                        textSize = 30f
+//                        textAlign = android.graphics.Paint.Align.CENTER
+//                    }
+//                )
+//
+//                dayData?.let {
+//                    val y = height - ((it.value - minValue) / valueRange * height)
+//                    points.add(Pair(Offset(x, y), it.status))
+//                }
+//            }
+//
+//            if (points.size > 1) {
+//                val path = Path()
+//
+//                path.moveTo(points[0].first.x, points[0].first.y)
+//                for (i in 1 until points.size) {
+//                    path.lineTo(points[i].first.x, points[i].first.y)
+//                }
+//
+//                drawPath(
+//                    path = path,
+//                    color = lineColor,
+//                    style = Stroke(width = 3f, cap = StrokeCap.Round)
+//                )
+//            }
+//
+//            points.forEach { (point, status) ->
+//                val pointColor = when (status) {
+//                    0 -> Color(0xFF6DD6D3) // Normal
+//                    1 -> Color(0xFFFFCC66) // Waspada
+//                    else -> Color(0xFFFF6666) // Tinggi
+//                }
+//
+//                drawCircle(
+//                    color = Color.White,
+//                    radius = 10f,
+//                    center = point
+//                )
+//
+//                drawCircle(
+//                    color = pointColor,
+//                    radius = 8f,
+//                    center = point
+//                )
+//            }
+//        }
+//    }
+//}
 
 fun calculateWeeklyData(gulaDarahList: List<GulaDarah>): Map<String, DayData> {
     val dayNameMap = mapOf(
@@ -645,105 +808,3 @@ fun StatusBadge(level: Int) {
         }
     }
 }
-
-//@Composable
-//fun CustomBottomBar(
-//    selectedIndex: Int,
-//    onItemSelected: (Int) -> Unit
-//) {
-//    Box(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .background(Color.White)
-//    ) {
-//        Row(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(80.dp)
-//                .shadow(6.dp)
-//                .background(Color.White)
-//                .padding(horizontal = 16.dp),
-//            horizontalArrangement = Arrangement.SpaceAround,
-//            verticalAlignment = Alignment.CenterVertically
-//        ) {
-//            BottomNavItem(
-//                icon = Icons.Outlined.Home,
-//                isSelected = selectedIndex == 0,
-//                onClick = { onItemSelected(0)},
-//                modifier = Modifier
-//            )
-//            BottomNavItem(
-//                icon = Icons.Outlined.CardGiftcard,
-//                isSelected = selectedIndex == 1,
-//                onClick = { onItemSelected(1) },
-//                modifier = Modifier
-//            )
-//            BottomNavItem(
-//                icon = Icons.Outlined.ShowChart,
-//                isSelected = selectedIndex == 2,
-//                onClick = { onItemSelected(2) },
-//                modifier = Modifier,
-//                isHighlighted = true
-//            )
-//            BottomNavItem(
-//                icon = Icons.Outlined.MenuBook,
-//                isSelected = selectedIndex == 3,
-//                onClick = { onItemSelected(3) },
-//                modifier = Modifier
-//            )
-//            BottomNavItem(
-//                icon = Icons.Outlined.Description,
-//                isSelected = selectedIndex == 4,
-//                onClick = { onItemSelected(4) },
-//                modifier = Modifier
-//            )
-//        }
-//    }
-//}
-
-//@Composable
-//fun BottomNavItem(
-//    icon: ImageVector,
-//    isSelected: Boolean,
-//    onClick: () -> Unit,
-//    isHighlighted: Boolean = false,
-//    modifier: Modifier
-//) {
-//    val tint = if (isSelected) {
-//        if (isHighlighted) Color.White else Color(0xFF5B5B5B)
-//    } else {
-//        Color(0xFFBDBDBD)
-//    }
-//
-//    val background = if (isSelected && isHighlighted) {
-//        Color(0xFFF15F5B)
-//    } else {
-//        Color.Transparent
-//    }
-//
-//    val iconModifier = if (isSelected && isHighlighted) {
-//        Modifier
-//            .size(60.dp)
-//            .clip(CircleShape)
-//            .background(background)
-//            .padding(16.dp)
-//    } else {
-//        Modifier
-//            .size(24.dp)
-//    }
-//
-//    Box(
-//        modifier = Modifier
-//            .wrapContentSize()
-//            .padding(8.dp)
-//            .clickable(onClick = onClick),
-//        contentAlignment = Alignment.Center
-//    ) {
-//        Icon(
-//            imageVector = icon,
-//            contentDescription = null,
-//            tint = tint,
-//            modifier = iconModifier
-//        )
-//    }
-//}

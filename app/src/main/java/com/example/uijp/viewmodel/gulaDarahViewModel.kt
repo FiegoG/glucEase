@@ -1,4 +1,4 @@
-package com.example.uijp.view.gulaDarah.VM//package com.example.uijp
+package com.example.uijp.viewmodel//package com.example.uijp
 //
 //import androidx.lifecycle.ViewModel
 //import kotlinx.coroutines.flow.MutableStateFlow
