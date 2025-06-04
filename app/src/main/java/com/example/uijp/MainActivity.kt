@@ -40,7 +40,7 @@ import com.example.uijp.view.splash.SplashScreen
 import com.example.uijp.view.tracker.TambahMakananScreen
 import com.example.uijp.view.tracker.TrackerGulaScreen
 import com.example.uijp.view.theme.UijpTheme
-import com.example.uijp.view.ReminderScreen
+import com.example.uijp.view.reminder.ReminderScreen
 import com.example.uijp.view.ResetPasswordScreen
 import com.example.uijp.view.VerificationScreen
 import com.example.uijp.viewmodel.BloodSugarViewModel
