@@ -1,0 +1,340 @@
+// view/artikel/ArtikelScreen.kt (Updated)
+package com.example.uijp.view.artikel
+
+import android.graphics.drawable.Icon
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.NavigateNext
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.example.uijp.R
+import com.example.uijp.data.model.Article
+import com.example.uijp.viewmodel.ArticleViewModel
+import java.text.SimpleDateFormat
+import java.util.*
+
+@Composable
+fun ArtikelScreen(
+    navController: NavController,
+    viewModel: ArticleViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        // Header
+        Text(
+            text = "Artikel & Edukasi",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // Search Bar
+        OutlinedTextField(
+            value = "",
+            onValueChange = {},
+            placeholder = { Text("Search") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(25.dp),
+            singleLine = true,
+            trailingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Search"
+                )
+            }
+        )
+
+        // Loading State
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        // Error State
+        uiState.error?.let { error ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+            ) {
+                Text(
+                    text = error,
+                    modifier = Modifier.padding(16.dp),
+                    color = Color(0xFFD32F2F)
+                )
+            }
+        }
+
+        // Terpopuler/Terbaru Section
+        Text(
+            text = "Terpopuler/Terbaru",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+
+        // Highlighted Article
+        uiState.highlightedArticle?.let { article ->
+            HighlightedArticleCard(
+                article = article,
+                onClick = {
+                    navController.navigate("detail/${article.id}")
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Kesehatan Section
+        CategorySection(
+            title = "Kesehatan",
+            articles = uiState.kesehatanArticles.take(3),
+            onSeeAllClick = {
+                navController.navigate("artikel_kategori/Kesehatan")
+            },
+            onArticleClick = { article ->
+                navController.navigate("detail/${article.id}")
+            }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Lifestyle Section
+        CategorySection(
+            title = "Life style",
+            articles = uiState.lifestyleArticles.take(3),
+            onSeeAllClick = {
+                navController.navigate("artikel_kategori/Lifestyle")
+            },
+            onArticleClick = { article ->
+                navController.navigate("detail/${article.id}")
+            }
+        )
+    }
+}
+
+@Composable
+fun HighlightedArticleCard(
+    article: Article,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clickable { onClick() }
+    ) {
+        Box {
+            // Background image (placeholder)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF81D4FA))
+            ) {
+                // Placeholder untuk gambar
+                Image(
+                    painter = painterResource(id = R.drawable.artikel1), // placeholder
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Overlay content
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    text = article.title,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Baca selengkapnya",
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_back),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .padding(start = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CategorySection(
+    title: String,
+    articles: List<Article>,
+    onSeeAllClick: () -> Unit,
+    onArticleClick: (Article) -> Unit
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { onSeeAllClick() }
+            ) {
+                Icon(
+                    Icons.Default.NavigateNext,
+                    contentDescription = "Lihat semua",
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(articles) { article ->
+                CategoryArticleCard(
+                    article = article,
+                    onClick = { onArticleClick(article) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryArticleCard(
+    article: Article,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .width(280.dp)
+            .clickable { onClick() }
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            // Image placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFE0E0E0))
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.artikel2), // placeholder
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = article.title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = formatDate(article.published_at),
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+private fun formatDate(dateString: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        val outputFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+        val date = inputFormat.parse(dateString)
+        outputFormat.format(date ?: Date())
+    } catch (e: Exception) {
+        "Tanggal tidak tersedia"
+    }
+}
+@Preview(showBackground = true)
+@Composable
+fun PreviewArtikelScreen() {
+    val navController = rememberNavController() // Dummy NavController
+    ArtikelScreen(navController)
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Tambahkan ini ke res/values/themes.xml -->
+    <style name="CustomTimePickerDialog" parent="Theme.Material3.DayNight.Dialog.Alert">
+        <item name="android:timePickerStyle">@style/CustomTimePicker</item>
+    </style>
+
+    <style name="CustomDatePickerDialog" parent="Theme.Material3.DayNight.Dialog.Alert">
+        <item name="android:datePickerStyle">@style/CustomDatePicker</item>
+    </style>
+
+    <style name="CustomTimePicker" parent="android:Widget.Material.Light.TimePicker">
+        <item name="android:headerBackground">#F67669</item>
+        <item name="android:numbersTextColor">#000000</item>
+        <item name="android:background">#FFFFFF</item>
+        <item name="android:colorBackground">#FFFFFF</item>
+    </style>
+
+    <style name="CustomDatePicker" parent="android:Widget.Material.Light.DatePicker">
+        <item name="android:headerBackground">#F67669</item>
+    </style>
+
+    <style name="TimePickerDialogTheme" parent="Theme.MaterialComponents.Light.Dialog">
+        <item name="colorPrimary">#F67669</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="colorOnSurface">#000000</item>
+    </style>
+
+
+    <style name="Theme.Uijp" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
