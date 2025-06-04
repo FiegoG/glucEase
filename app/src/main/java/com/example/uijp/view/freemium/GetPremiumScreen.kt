@@ -17,11 +17,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,29 +40,42 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.uijp.R
+import com.example.uijp.data.model.ApiPremiumPackage
+import com.example.uijp.viewmodel.PremiumUiState
+import com.example.uijp.viewmodel.PremiumViewModel
 
 @Composable
-fun GetPremiumScreen(navController: NavController) {
-    var selectedOption by remember { mutableStateOf("Bulanan") }
+fun GetPremiumScreen(navController: NavController, viewModel: PremiumViewModel) {
+    // var selectedOption by remember { mutableStateOf("Bulanan") } // Akan dikelola oleh state paket dari ViewModel
+    // State lokal untuk tracking pilihan UI sementara, sebelum dikonfirmasi ke ViewModel
+    var uiSelectedPackageTitle by remember { mutableStateOf<String?>(null) }
+
+    val packagesState by viewModel.premiumPackagesState.collectAsState()
+
+    // LaunchedEffect untuk memilih paket pertama sebagai default jika ada
+    LaunchedEffect(packagesState) {
+        if (packagesState is PremiumUiState.Success) {
+            val packages = (packagesState as PremiumUiState.Success<List<ApiPremiumPackage>>).data
+            if (packages.isNotEmpty() && uiSelectedPackageTitle == null) {
+                // Pilih paket pertama secara default untuk UI, misal "Bulanan" jika itu yang pertama
+                // Anda mungkin ingin logika yang lebih canggih di sini
+                // atau biarkan user yang memilih pertama kali
+                val defaultSelection = packages.firstOrNull { it.packageName?.contains("Bulanan", ignoreCase = true) == true }
+                    ?: packages.firstOrNull()
+                defaultSelection?.let {
+                    uiSelectedPackageTitle = it.packageName // atau field lain yang cocok dengan title di SubscriptionOption
+                }
+            }
+        }
+    }
+
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        //        HEADER
-        Box(
-            modifier = Modifier
-                .height(64.dp)
-                .fillMaxWidth()
-        ) {
-            IconButton(modifier = Modifier.align(Alignment.CenterStart), onClick = {navController.popBackStack()}) {
-                Icon(
-                    Icons.Default.Close, contentDescription = "close"
-                )
-            }
-
-        }
+        // ... (HEADER)
 
         //text and vector
         Box(
@@ -67,6 +83,7 @@ fun GetPremiumScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(top = 24.dp, start = 8.dp, end = 8.dp)
         ) {
+            // ... (Teks dan Image GlucEase Premium)
             Column {
                 Text(
                     text = "GlucEase Premium",
@@ -92,7 +109,6 @@ fun GetPremiumScreen(navController: NavController) {
                     contentDescription = null
                 )
             }
-
         }
         Box(
             modifier = Modifier
@@ -100,27 +116,62 @@ fun GetPremiumScreen(navController: NavController) {
                 .padding(top = 24.dp, start = 8.dp, end = 8.dp)
         ) {
             Column {
-                // Bulanan Card
-                SubscriptionOption(
-                    title = "Bulanan",
-                    price = "Rp19.000/Bulan",
-                    selected = selectedOption == "Bulanan",
-                    onClick = { selectedOption = "Bulanan" })
+                when (val state = packagesState) {
+                    is PremiumUiState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    }
+                    is PremiumUiState.Success -> {
+                        val packages = state.data
+                        // Asumsi ada 2 paket utama: Bulanan dan Tahunan dari API
+                        // Anda mungkin perlu menyesuaikan cara mencari paket "Bulanan" dan "Tahunan"
+                        val monthlyPackage = packages.find { it.packageName?.contains("Bulanan", ignoreCase = true) == true }
+                        val yearlyPackage = packages.find { it.packageName?.contains("Tahunan", ignoreCase = true) == true }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                // Tahunan Card
-                SubscriptionOption(
-                    title = "Tahunan",
-                    price = "Rp189.000/tahun (hemat 20%)",
-                    selected = selectedOption == "Tahunan",
-                    onClick = { selectedOption = "Tahunan" },
-                    badge = "Best Value"
-                )
+                        monthlyPackage?.let { pkg ->
+                            SubscriptionOption(
+                                title = pkg.packageName ?: "Bulanan", // Tampilkan nama dari API
+                                price = "Rp${pkg.price ?: "N/A"}/${if (pkg.durationMonths == 1) "Bulan" else "${pkg.durationMonths} Bulan"}",
+                                selected = uiSelectedPackageTitle == pkg.packageName,
+                                onClick = { uiSelectedPackageTitle = pkg.packageName }
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        yearlyPackage?.let { pkg ->
+                            SubscriptionOption(
+                                title = pkg.packageName ?: "Tahunan", // Tampilkan nama dari API
+                                price = "Rp${pkg.price ?: "N/A"}/${if (pkg.durationMonths == 12) "tahun" else "${pkg.durationMonths} Bulan"} (hemat 20%)", // Contoh format
+                                selected = uiSelectedPackageTitle == pkg.packageName,
+                                onClick = { uiSelectedPackageTitle = pkg.packageName },
+                                badge = if (pkg.packageName?.contains("Tahunan", ignoreCase = true) == true) "Best Value" else null
+                            )
+                        }
+
+                        if (packages.isEmpty()) {
+                            Text("Tidak ada paket tersedia saat ini.", textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                    is PremiumUiState.Error -> {
+                        Text("Error: ${state.message}", color = Color.Red, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    }
+                    is PremiumUiState.Idle -> {
+                        // Initial state, loading will likely be triggered soon
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Button Langganan Sekarang
                 Button(
-                    onClick = {navController.navigate("premiumPrice")},
+                    onClick = {
+                        if (packagesState is PremiumUiState.Success) {
+                            val selectedApiPackage = (packagesState as PremiumUiState.Success<List<ApiPremiumPackage>>).data
+                                .find { it.packageName == uiSelectedPackageTitle }
+                            selectedApiPackage?.let {
+                                viewModel.selectPackage(it) // Set di ViewModel
+                                navController.navigate("premiumPrice/${it.id}") // Kirim ID paket
+                            }
+                        }
+                    },
+                    enabled = uiSelectedPackageTitle != null && packagesState is PremiumUiState.Success && (packagesState as PremiumUiState.Success<List<ApiPremiumPackage>>).data.any{it.packageName == uiSelectedPackageTitle},
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B6B)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -129,10 +180,9 @@ fun GetPremiumScreen(navController: NavController) {
                 ) {
                     Text(text = "Langganan Sekarang", color = Color.White)
                 }
-
+                // ... (Syarat & Ketentuan Text)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Syarat & Ketentuan Text
                 Text(
                     text = "Dengan melanjutkan pembayaran, kamu menyetujui\n" + "Syarat & Ketentuan serta Kebijakan Privasi GlucEase.",
                     style = MaterialTheme.typography.bodySmall.copy(
@@ -141,11 +191,8 @@ fun GetPremiumScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-
         }
-
     }
-
 }
 
 @Composable

@@ -197,12 +197,6 @@ fun GulaDarahPage(
 
                                     Spacer(modifier = Modifier.weight(1f))
 
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowForward,
-                                        contentDescription = "View Details",
-                                        modifier = Modifier.size(24.dp),
-                                        tint = Color.Gray
-                                    )
                                 }
 
                                 // Use API data instead of dummy data
@@ -424,11 +418,11 @@ fun DayBasedGulaDarahChart(
             val height = size.height - 40f
 
             val horizontalStep = width / 7
-            val maxValue = 120f
+            val maxValue = 200f
             val minValue = 40f
             val valueRange = maxValue - minValue
 
-            listOf(40, 60, 80, 100).forEach { value ->
+            listOf(40, 60, 80, 100, 120, 140, 160, 180, 200).forEach { value ->
                 val y = height - ((value - minValue) / valueRange * height)
 
                 drawLine(

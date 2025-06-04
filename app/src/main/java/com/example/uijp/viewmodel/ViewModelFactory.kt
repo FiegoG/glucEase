@@ -66,3 +66,21 @@ class MissionViewModelFactory(private val context: Context) : ViewModelProvider.
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }
+
+class PremiumViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(PremiumViewModel::class.java)) {
+            // Pastikan RetrofitClient sudah diinisialisasi sebelum factory ini digunakan
+            if (RetrofitClient.subscriptionApiService == null) {
+                RetrofitClient.initialize(context.applicationContext)
+            }
+            return PremiumViewModel(
+                RetrofitClient.subscriptionApiService,
+                AuthTokenManager.getInstance(context.applicationContext)
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+

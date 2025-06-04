@@ -51,6 +51,8 @@ import com.example.uijp.viewmodel.LoginViewModelFactory
 import com.example.uijp.data.network.RetrofitClient
 import com.example.uijp.viewmodel.MissionViewModel
 import com.example.uijp.viewmodel.MissionViewModelFactory
+import com.example.uijp.viewmodel.PremiumViewModel
+import com.example.uijp.viewmodel.PremiumViewModelFactory
 
 
 class MainActivity : ComponentActivity() {
@@ -89,6 +91,9 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
     val missionViewModelFactory = remember {
         MissionViewModelFactory(context.applicationContext) // Use context
     }
+
+    val premiumViewModelFactory = remember { PremiumViewModelFactory(context.applicationContext) }
+    val premiumViewModel: PremiumViewModel = viewModel(factory = premiumViewModelFactory)
 
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
         composable("splash") { SplashScreen(navController) }
@@ -130,9 +135,20 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("pilihWaktu") { PilihWaktuUI(navController) }
         composable("pembayaran") { PembayaranUI(navController) }
         composable("notifikasi") { NotifikasiUI(navController) }
-        composable("premium") { GetPremiumScreen(navController) }
-        composable("premiumPrice") { PremiumPriceScreen(navController) }
-        composable("paymentMethod") { PaymentMethodScreen(navController) }
+        composable("premium") {
+            GetPremiumScreen(navController = navController, viewModel = premiumViewModel)
+        }
+        composable("premiumPrice/{packageId}") { backStackEntry -> // Terima packageId
+            val packageId = backStackEntry.arguments?.getString("packageId")?.toIntOrNull()
+            PremiumPriceScreen(
+                navController = navController,
+                viewModel = premiumViewModel,
+                packageId = packageId
+            )
+        }
+        composable("paymentMethod") {
+            PaymentMethodScreen(navController = navController, viewModel = premiumViewModel)
+        }
         composable("paymentSuccess") { PaymentSuccessScreen(navController) }
 
         composable("insert") {
