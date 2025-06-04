@@ -185,7 +185,7 @@ fun InsertPages(viewModel: BloodSugarViewModel, navController: NavController) {
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
+                            .height(80.dp)
                             .padding(end = 31.dp),
                         shape = RoundedCornerShape(8.dp),
                         textStyle = TextStyle(fontSize = 14.sp),
