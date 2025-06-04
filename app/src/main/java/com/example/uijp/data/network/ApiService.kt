@@ -23,6 +23,7 @@ import com.example.uijp.data.model.SubscribePackageResponse
 import com.example.uijp.data.model.SugarTrackerResponse
 import com.example.uijp.data.model.UpdateBloodSugarRequest
 import com.example.uijp.data.model.UpdateQuantityRequest
+import com.example.uijp.data.model.WeeklyReportApiResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -141,4 +142,11 @@ interface SubscriptionApiService {
         @Path("userId") userId: String
     ): Response<UserSubscriptionStatusResponse>
     */
+}
+
+interface WeeklyReportApiService {
+    @GET("api/weekly-report/latest/{userId}")
+    suspend fun getLatestWeeklyReport(
+        @Path("userId") userId: String
+    ): Response<WeeklyReportApiResponse>
 }

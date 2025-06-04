@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.example.uijp.R
 
 @Composable
-fun TopBarSection(navController: NavController) {
+fun TopBarSection(navController: NavController, period: String?) { // Tambah parameter period
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -40,21 +40,19 @@ fun TopBarSection(navController: NavController) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f)
             )
-
         }
         Spacer(modifier = Modifier.padding(4.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(), // Membuat Row mengisi lebar maksimum
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Spacer(modifier = Modifier.weight(1f)) // Menambahkan spacer agar tanggal dan ikon didorong ke kanan
+            Spacer(modifier = Modifier.weight(1f))
             Icon(painter = painterResource(id = R.drawable.icon_clock), contentDescription = "Tanggal Laporan", tint = Color.Unspecified)
-            //Icon(Icons.Filled.DateRange, contentDescription = "Tanggal Laporan")
-            Text(text = "18 - 24 Maret 2025", textAlign = TextAlign.End)
+            Text(text = period ?: "Periode Tidak Tersedia", textAlign = TextAlign.End) // Gunakan data dari ViewModel
             Spacer(modifier = Modifier.padding(4.dp))
-
         }
     }
+}
 //    Row(
 //        modifier = Modifier
 //            .fillMaxWidth()
@@ -78,5 +76,5 @@ fun TopBarSection(navController: NavController) {
 //        }
 //
 //    }
-}
+
 

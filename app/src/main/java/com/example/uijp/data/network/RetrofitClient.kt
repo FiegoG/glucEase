@@ -81,6 +81,10 @@ object RetrofitClient {
         retrofit.create(SubscriptionApiService::class.java)
     }
 
+    val weeklyReportApiService: WeeklyReportApiService by lazy {
+        retrofit.create(WeeklyReportApiService::class.java)
+    }
+
     private fun getAuthToken(): String? {
         return authTokenManager?.getAccessToken()
     }
