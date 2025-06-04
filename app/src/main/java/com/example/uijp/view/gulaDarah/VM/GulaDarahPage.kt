@@ -68,17 +68,6 @@ import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-data class GulaDarah(
-    val date: String,
-    val time: String,
-    val level: Int
-)
-
-data class DayData(
-    val value: Int,
-    val status: Int
-)
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun GulaDarahPage(
@@ -342,17 +331,16 @@ fun ApiBasedGulaDarahChart(
     chartData: List<ChartDataItem>,
     modifier: Modifier = Modifier
 ) {
-//    // Convert API data to format compatible with existing chart
-//    val weeklyData = remember(chartData) {
-//        convertApiDataToWeeklyData(chartData)
-//    }
-//
-//    DayBasedGulaDarahChart(
-//        weeklyData = weeklyData,
-//        modifier = modifier
-//    )
+    val cappedChartData = chartData.map { item ->
+        val cappedReadings = item.readings.map { reading ->
+            reading.copy(level = minOf(reading.level, 190))
+        }
+        val cappedAverage = minOf(item.averageLevel, 190.0)
+        item.copy(readings = cappedReadings, averageLevel = cappedAverage)
+    }
+
     DayBasedGulaDarahChart(
-        weeklyData = chartData,
+        weeklyData = cappedChartData,
         modifier = modifier
     )
 }
@@ -415,32 +403,8 @@ fun ApiBloodSugarItem(record: BloodSugarRecord, index: Int) {
     }
 }
 
-fun convertApiDataToWeeklyData(chartData: List<ChartDataItem>): Map<String, DayData> {
-    val result = mutableMapOf<String, DayData>()
-
-    chartData.forEach { item ->
-        // Convert date to day name
-        val dayName = convertDateToDayName(item.date)
-        val avgLevel = item.averageLevel.toInt()
-
-        val status = when {
-            avgLevel < 70 -> 1 // Waspada
-            avgLevel in 70..140 -> 0 // Normal
-            else -> 2 // Tinggi
-        }
-
-        result[dayName] = DayData(avgLevel, status)
-    }
-
-    return result
-}
-
 fun convertDateToDayName(dateString: String): String {
-    // Implementation to convert date string to day name
-    // This is a simplified version, you might need to adjust based on your date format
     val dayNames = listOf("Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab")
-    // Return appropriate day name based on date
-    // For now, returning a placeholder
     return dayNames.random()
 }
 
@@ -566,163 +530,6 @@ fun getStatus(avg: Double): Int = when {
     else -> 2 // Tinggi
 }
 
-//@Composable
-//fun DayBasedGulaDarahChart(
-//    weeklyData: Map<String, DayData>,
-//    modifier: Modifier = Modifier
-//) {
-//    val days = listOf("Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab")
-//    val lineColor = Color(0xFFA8CEF1)
-//
-//    Box(modifier = modifier
-//        .background(color = Color.White)) {
-//        Canvas(modifier = Modifier.fillMaxSize()) {
-//            val width = size.width
-//            val height = size.height - 40f
-//
-//            val horizontalStep = width / 7
-//            val maxValue = 120f
-//            val minValue = 40f
-//            val valueRange = maxValue - minValue
-//
-//            listOf(40, 60, 80, 100).forEach { value ->
-//                val y = height - ((value - minValue) / valueRange * height)
-//
-//                drawLine(
-//                    color = Color.LightGray.copy(alpha = 0.5f),
-//                    start = Offset(0f, y),
-//                    end = Offset(width, y),
-//                    strokeWidth = 1f
-//                )
-//
-//                drawContext.canvas.nativeCanvas.drawText(
-//                    value.toString(),
-//                    10f,
-//                    y - 5f,
-//                    Paint().asFrameworkPaint().apply {
-//                        color = android.graphics.Color.GRAY
-//                        textSize = 30f
-//                        textAlign = android.graphics.Paint.Align.LEFT
-//                    }
-//                )
-//            }
-//
-//            val points = mutableListOf<Pair<Offset, Int>>()
-//
-//            days.forEachIndexed { index, day ->
-//                val x = index * horizontalStep + horizontalStep / 2
-//                val dayData = weeklyData[day]
-//
-//                drawContext.canvas.nativeCanvas.drawText(
-//                    day,
-//                    x,
-//                    height + 30f,
-//                    Paint().asFrameworkPaint().apply {
-//                        color = android.graphics.Color.GRAY
-//                        textSize = 30f
-//                        textAlign = android.graphics.Paint.Align.CENTER
-//                    }
-//                )
-//
-//                dayData?.let {
-//                    val y = height - ((it.value - minValue) / valueRange * height)
-//                    points.add(Pair(Offset(x, y), it.status))
-//                }
-//            }
-//
-//            if (points.size > 1) {
-//                val path = Path()
-//
-//                path.moveTo(points[0].first.x, points[0].first.y)
-//                for (i in 1 until points.size) {
-//                    path.lineTo(points[i].first.x, points[i].first.y)
-//                }
-//
-//                drawPath(
-//                    path = path,
-//                    color = lineColor,
-//                    style = Stroke(width = 3f, cap = StrokeCap.Round)
-//                )
-//            }
-//
-//            points.forEach { (point, status) ->
-//                val pointColor = when (status) {
-//                    0 -> Color(0xFF6DD6D3) // Normal
-//                    1 -> Color(0xFFFFCC66) // Waspada
-//                    else -> Color(0xFFFF6666) // Tinggi
-//                }
-//
-//                drawCircle(
-//                    color = Color.White,
-//                    radius = 10f,
-//                    center = point
-//                )
-//
-//                drawCircle(
-//                    color = pointColor,
-//                    radius = 8f,
-//                    center = point
-//                )
-//            }
-//        }
-//    }
-//}
-
-fun calculateWeeklyData(gulaDarahList: List<GulaDarah>): Map<String, DayData> {
-    val dayNameMap = mapOf(
-        Calendar.SUNDAY to "Min",
-        Calendar.MONDAY to "Sen",
-        Calendar.TUESDAY to "Sel",
-        Calendar.WEDNESDAY to "Rab",
-        Calendar.THURSDAY to "Kam",
-        Calendar.FRIDAY to "Jum",
-        Calendar.SATURDAY to "Sab"
-    )
-
-    val calendar = Calendar.getInstance()
-    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale("id", "ID"))
-
-    val entriesByDay = gulaDarahList.groupBy { entry ->
-        try {
-            val date = dateFormat.parse(entry.date)
-            calendar.time = date ?: Date()
-            dayNameMap[calendar.get(Calendar.DAY_OF_WEEK)] ?: ""
-        } catch (e: Exception) {
-            ""
-        }
-    }
-
-    val resultMap = mutableMapOf<String, DayData>()
-
-    entriesByDay.forEach { (day, dayEntries) ->
-        if (day.isNotEmpty()) {
-            val avgLevel = dayEntries.sumOf { it.level } / dayEntries.size
-
-            val status = when {
-                avgLevel < 70 -> 1 // Waspada
-                avgLevel in 70..140 -> 0 // Normal
-                else -> 2 // Tinggi
-            }
-
-            resultMap[day] = DayData(avgLevel, status)
-        }
-    }
-
-    if (resultMap.isEmpty()) {
-        return mapOf(
-            "Min" to DayData(55, 0),
-            "Sen" to DayData(47, 0),
-            "Sel" to DayData(90, 0),
-            "Rab" to DayData(95, 2),
-            "Kam" to DayData(58, 0),
-            "Jum" to DayData(88, 1),
-            "Sab" to DayData(70, 0)
-        )
-    }
-
-    return resultMap
-}
-
 @Composable
 fun LegendItem(color: Color, text: String) {
     Row(
@@ -739,39 +546,6 @@ fun LegendItem(color: Color, text: String) {
             fontSize = 12.sp,
             color = Color.DarkGray
         )
-    }
-}
-
-@Composable
-fun GulaDarahItem(entry: GulaDarah, index: Int) {
-    val backgroundColor = if (index % 2 == 0) Color.White else Color(0xFFFFE0E0)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(backgroundColor)
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "${entry.date}, ${entry.time}",
-            fontSize = 10.sp,
-            fontWeight = FontWeight.W500,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "${entry.level} MG/DL",
-            fontSize = 10.sp,
-            color = Color.Gray,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center
-        )
-        Box(
-            modifier = Modifier.weight(0.6f),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            StatusBadge(entry.level)
-        }
     }
 }
 
