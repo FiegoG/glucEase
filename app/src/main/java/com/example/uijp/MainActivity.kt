@@ -79,7 +79,7 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
     // Buat factory untuk BloodSugarViewModel
     val bloodSugarViewModelFactory = remember { BloodSugarViewModelFactory(context.applicationContext) }
 
-    NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
+    NavHost(navController = navController, startDestination = "home", modifier = modifier) {
         composable("splash") { SplashScreen(navController) }
         composable("onboard1") { Onboard1(navController) }
         composable("onboard2") { Onboard2(navController) }

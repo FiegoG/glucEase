@@ -1,20 +1,10 @@
 package com.example.uijp.view
 
 import android.app.TimePickerDialog
+import android.view.ContextThemeWrapper
 import android.widget.Toast
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -22,21 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -47,116 +25,59 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.view.ContextThemeWrapper
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.uijp.R
-import java.util.Calendar
+import com.example.uijp.viewmodel.ReminderViewModel
 
 @Composable
-fun ReminderScreen(navController: NavController) {
+fun ReminderScreen(navController: NavController, viewModel: ReminderViewModel = viewModel()) {
     val context = LocalContext.current
-    var timeText by remember { mutableStateOf("") }
 
-    val calendar = Calendar.getInstance()
-    val hour = calendar.get(Calendar.HOUR_OF_DAY)
-    val minute = calendar.get(Calendar.MINUTE)
-
-    val waktuBorderColor by remember {
-        derivedStateOf {
-            if (timeText.isEmpty()) Color(0xFFDDDDDD)
-            else Color(0xFF000000)
-        }
-    }
-
-    val days = listOf("Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu")
+    val (hour, minute) = viewModel.getCurrentHourMinute()
     var expanded by remember { mutableStateOf(false) }
-    var selectedDay by remember { mutableStateOf("") }
 
-    val hariBorderColor by remember {
-        derivedStateOf {
-            if (selectedDay.isEmpty()) Color(0xFFDDDDDD)
-            else Color(0xFF000000)
-        }
-    }
     val timePickerDialog = TimePickerDialog(
         ContextThemeWrapper(context, R.style.CustomTimePickerDialog),
         { _, selectedHour: Int, selectedMinute: Int ->
-            timeText = String.format("%02d:%02d", selectedHour, selectedMinute)
+            viewModel.updateTime(selectedHour, selectedMinute)
         },
         hour, minute, true
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-//        HEADER
-        Box(
-            modifier = Modifier
-                .height(64.dp)
-                .fillMaxWidth()
-        ) {
-            IconButton(modifier = Modifier.align(Alignment.CenterStart), onClick = {navController.navigate("home")}) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = null,
-                    tint = Color.Black
-                )
+    val waktuBorderColor = if (viewModel.selectedTime.isEmpty()) Color(0xFFDDDDDD) else Color(0xFF000000)
+    val hariBorderColor = if (viewModel.selectedDay.isEmpty()) Color(0xFFDDDDDD) else Color(0xFF000000)
+
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+
+        // HEADER
+        Box(Modifier.height(64.dp).fillMaxWidth()) {
+            IconButton(onClick = { navController.navigate("home") }, modifier = Modifier.align(Alignment.CenterStart)) {
+                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null, tint = Color.Black)
             }
 
-            Text(
-                "Reminder",
-                modifier = Modifier.align(Alignment.Center),
-                fontSize = 22.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Black
-            )
+            Text("Reminder", modifier = Modifier.align(Alignment.Center), fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
         }
 
         Spacer(Modifier.height(36.dp))
 
+        // ICON
         Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(124.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFF67669))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .align(Alignment.Center),
-                    contentDescription = "Center Notification circle",
-                    tint = Color.White
-                )
+            Box(modifier = Modifier.size(124.dp).clip(CircleShape).background(Color(0xFFF67669))) {
+                Icon(imageVector = Icons.Default.Notifications, modifier = Modifier.size(64.dp).align(Alignment.Center), contentDescription = null, tint = Color.White)
             }
             Spacer(Modifier.height(12.dp))
-
-            Text(
-                "Pilih waktu untuk menerima notifikasi cek gula darah",
-                color = Color(0xFF7A7A7A),
-                textAlign = TextAlign.Center,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Text("Pilih waktu untuk menerima notifikasi cek gula darah", color = Color(0xFF7A7A7A), textAlign = TextAlign.Center, fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
 
         Spacer(Modifier.height(24.dp))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-        ) {
-            Text("Waktu", fontSize = 14.sp, color = Color(0xFF666666))
 
-//            CLOCK TEXT FIELD
+        // WAKTU
+        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+            Text("Waktu", fontSize = 14.sp, color = Color(0xFF666666))
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -165,33 +86,23 @@ fun ReminderScreen(navController: NavController) {
                     .clip(RoundedCornerShape(8.dp))
                     .padding(horizontal = 12.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
                     BasicTextField(
-                        value = timeText,
+                        value = viewModel.selectedTime,
                         onValueChange = {},
                         readOnly = true,
                         enabled = false,
-                        modifier = Modifier
-                            .weight(1f),
+                        modifier = Modifier.weight(1f),
                         singleLine = true,
                         textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
                         decorationBox = { innerTextField ->
-                            if (timeText.isEmpty()) {
-                                Text("Set alarm...", color = Color.LightGray)
-                            }
+                            if (viewModel.selectedTime.isEmpty()) Text("Set alarm...", color = Color.LightGray)
                             innerTextField()
                         }
                     )
 
                     IconButton(onClick = { timePickerDialog.show() }) {
-                        Image(
-                            modifier = Modifier.padding(4.dp),
-                            painter = painterResource(R.drawable.icon_clock),
-                            contentDescription = null
-                        )
+                        Image(painter = painterResource(R.drawable.icon_clock), contentDescription = null, modifier = Modifier.padding(4.dp))
                     }
                 }
             }
@@ -199,15 +110,11 @@ fun ReminderScreen(navController: NavController) {
 
         Spacer(Modifier.height(24.dp))
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-        ) {
+        // HARI
+        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
             Text("Ulangi Setiap", fontSize = 14.sp, color = Color(0xFF666666))
 
             Box {
-                // Dropdown anchor
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -218,17 +125,13 @@ fun ReminderScreen(navController: NavController) {
                         .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = if (selectedDay.isEmpty()) "Pilih hari..." else selectedDay,
-                            color = if (selectedDay.isEmpty()) Color.LightGray else Color.Black,
+                            text = if (viewModel.selectedDay.isEmpty()) "Pilih hari..." else viewModel.selectedDay,
+                            color = if (viewModel.selectedDay.isEmpty()) Color.LightGray else Color.Black,
                             fontSize = 16.sp,
                             modifier = Modifier.weight(1f)
                         )
-
                         IconButton(onClick = { expanded = !expanded }) {
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
@@ -240,22 +143,16 @@ fun ReminderScreen(navController: NavController) {
                     }
                 }
 
-                // Dropdown itself
                 DropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
+                    modifier = Modifier.fillMaxWidth().background(Color.White)
                 ) {
-                    days.forEach { day ->
-                        DropdownMenuItem(
-                            text = { Text(day) },
-                            onClick = {
-                                selectedDay = day
-                                expanded = false
-                            }
-                        )
+                    viewModel.days.forEach { day ->
+                        DropdownMenuItem(text = { Text(day) }, onClick = {
+                            viewModel.updateDay(day)
+                            expanded = false
+                        })
                     }
                 }
             }
@@ -263,20 +160,17 @@ fun ReminderScreen(navController: NavController) {
 
         Spacer(Modifier.height(48.dp))
 
+        // BUTTON
         Button(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp)).
-                padding(horizontal = 8.dp)
-                .height(40.dp),
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).padding(horizontal = 8.dp).height(40.dp),
             onClick = {
                 Toast.makeText(context, "Reminder berhasil disimpan", Toast.LENGTH_SHORT).show()
             },
             shape = RoundedCornerShape(8.dp),
-            enabled = timeText.isNotEmpty() && selectedDay.isNotEmpty(),
+            enabled = viewModel.isReminderValid(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF67669), disabledContainerColor = Color(0xFFF7958F))
-        ) { Text("Simpan", color = Color.White)
-
+        ) {
+            Text("Simpan", color = Color.White)
         }
     }
 }

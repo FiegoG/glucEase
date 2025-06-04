@@ -1,3 +1,4 @@
-package com.example.uijp.data.model
-
-data class Reminder()
+data class Reminder(
+    val time: String,
+    val day: String
+)
