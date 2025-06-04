@@ -1,4 +1,5 @@
-package com.example.konsultasiprofil.UI.Screen
+// UI/Screen/KonsultasiScreen.kt
+package com.example.uijp.view.konsultasi
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,10 +16,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
@@ -34,16 +37,29 @@ import androidx.compose.material3.Text
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.rememberNavController
 import com.example.uijp.R
+import com.example.uijp.data.model.Doctor
+import com.example.uijp.viewmodel.ConsultationViewModel
+import com.example.uijp.viewmodel.ConsultationViewModelFactory
 
 @Composable
-fun DokterCard(name: String, spesialis: String, rating: Double, navController: NavController, modifier: Modifier = Modifier) {
+fun DokterCard(
+    doctor: Doctor,
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -61,11 +77,17 @@ fun DokterCard(name: String, spesialis: String, rating: Double, navController: N
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(text = name, fontWeight = FontWeight.Bold)
-                Text(text = spesialis, fontSize = 12.sp)
+                Text(
+                    text = doctor.doctor_name,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = doctor.expertise,
+                    fontSize = 12.sp
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Button(
-                    onClick = {navController.navigate("detailDokter")},
+                    onClick = { navController.navigate("detailDokter/${doctor.id}") },
                     shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97D7D))
                 ) {
@@ -75,7 +97,11 @@ fun DokterCard(name: String, spesialis: String, rating: Double, navController: N
             Spacer(modifier = Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Default.Star, contentDescription = "Rating", tint = Color(0xFFFFC107))
-                Text(text = rating.toString(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = doctor.rating.toString(),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
@@ -83,13 +109,17 @@ fun DokterCard(name: String, spesialis: String, rating: Double, navController: N
 
 @Composable
 fun KonsultasiUi(navController: NavController) {
+    val viewModel: ConsultationViewModel = viewModel(factory = ConsultationViewModelFactory())
+    val uiState by viewModel.uiState.collectAsState()
+    val doctors by viewModel.doctors.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFE7ECF4))
+            .background(Color(0xFFFFFFFF))
             .padding(16.dp)
     ) {
-        //TopBar
+        // TopBar
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -105,7 +135,7 @@ fun KonsultasiUi(navController: NavController) {
             Icon(Icons.Default.MoreVert, contentDescription = "More")
         }
 
-        //Search Menu
+        // Search Menu
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = "",
@@ -123,7 +153,7 @@ fun KonsultasiUi(navController: NavController) {
             )
         )
 
-        //Banner
+        // Banner
         Spacer(modifier = Modifier.height(8.dp))
         Box(
             modifier = Modifier
@@ -161,17 +191,72 @@ fun KonsultasiUi(navController: NavController) {
             color = Color.Black
         )
 
-        //ListDokter
         Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn {
-            items(4) {
-                DokterCard(
-                    name = "dr. Andi Pratama, Sp.PD",
-                    spesialis = "Spesialis Penyakit Dalam - Kontrasepsi Diabetes",
-                    rating = 5.0,
-                    navController = navController
-                )
+
+        // Content based on state
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color(0xFFF97D7D)
+                    )
+                }
+            }
+
+            uiState.error != null -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = uiState.error!!,
+                        color = Color.Red,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.retryLoadDoctors() },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97D7D))
+                    ) {
+                        Text("Coba Lagi", color = Color.White)
+                    }
+                }
+            }
+
+            doctors.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Tidak ada dokter tersedia",
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            else -> {
+                LazyColumn {
+                    items(doctors) { doctor ->
+                        DokterCard(
+                            doctor = doctor,
+                            navController = navController
+                        )
+                    }
+                }
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun PreviewKonsultasiUi() {
+    val navController = rememberNavController()
+    KonsultasiUi(navController = navController)
 }

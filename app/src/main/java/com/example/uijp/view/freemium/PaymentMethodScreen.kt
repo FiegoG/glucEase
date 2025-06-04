@@ -33,6 +33,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.CircularProgressIndicator // Untuk loading
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.uijp.viewmodel.PremiumViewModel
+import com.example.uijp.viewmodel.PremiumUiState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,8 +54,30 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
 @Composable
-fun PaymentMethodScreen( navController: NavController) {
+fun PaymentMethodScreen(navController: NavController, viewModel: PremiumViewModel) {
     var selectedMethod by remember { mutableStateOf("") }
+    val subscriptionState by viewModel.subscriptionResultState.collectAsState()
+    val context = LocalContext.current
+
+    // Handle subscription result
+    LaunchedEffect(subscriptionState) {
+        when (val state = subscriptionState) {
+            is PremiumUiState.Success -> {
+                Toast.makeText(context, state.data.message ?: "Langganan berhasil!", Toast.LENGTH_LONG).show()
+                navController.navigate("paymentSuccess") {
+                    // Membersihkan backstack sampai home atau tujuan lain yang sesuai
+                    popUpTo(navController.graph.startDestinationId) { inclusive = false }
+                    launchSingleTop = true
+                }
+                viewModel.resetSubscriptionResultState() // Reset state setelah sukses
+            }
+            is PremiumUiState.Error -> {
+                Toast.makeText(context, "Error: ${state.message}", Toast.LENGTH_LONG).show()
+                viewModel.resetSubscriptionResultState() // Reset state setelah error
+            }
+            else -> { /* Idle or Loading */ }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -55,15 +88,16 @@ fun PaymentMethodScreen( navController: NavController) {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             // Back Button
             IconButton(
-                onClick = { navController.popBackStack() },
+                onClick = { if (subscriptionState !is PremiumUiState.Loading) navController.popBackStack() },
+                enabled = subscriptionState !is PremiumUiState.Loading,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back"
                 )
             }
-
+            // ... (Sisa UI PaymentMethodScreen seperti Title, PaymentOptions)
             Spacer(modifier = Modifier.height(24.dp))
 
             // Title
@@ -81,49 +115,56 @@ fun PaymentMethodScreen( navController: NavController) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 PaymentOption(
                     name = "SHOPEE PAY",
-                    logoRes = R.drawable.logo_shopee, // ganti ke logo Shopee di drawable
+                    logoRes = R.drawable.logo_shopee,
                     isSelected = selectedMethod == "SHOPEE PAY",
-                    onClick = { selectedMethod = "SHOPEE PAY" }
+                    onClick = { if (subscriptionState !is PremiumUiState.Loading) selectedMethod = "SHOPEE PAY" }
                 )
-
                 PaymentOption(
                     name = "OVO",
                     logoRes = R.drawable.logo_ovo,
                     isSelected = selectedMethod == "OVO",
-                    onClick = { selectedMethod = "OVO" }
+                    onClick = { if (subscriptionState !is PremiumUiState.Loading) selectedMethod = "OVO" }
                 )
-
                 PaymentOption(
                     name = "Gopay",
                     logoRes = R.drawable.logo_gopay,
                     isSelected = selectedMethod == "Gopay",
-                    onClick = { selectedMethod = "Gopay" }
+                    onClick = { if (subscriptionState !is PremiumUiState.Loading) selectedMethod = "Gopay" }
                 )
             }
         }
 
-        // Button Bayar
+        if (subscriptionState is PremiumUiState.Loading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+
         Button(
             onClick = {
                 if (selectedMethod.isNotEmpty()) {
-                    navController.navigate("paymentSuccess")
+                    viewModel.subscribeToSelectedPackage(selectedMethod)
+                } else {
+                    Toast.makeText(context, "Pilih metode pembayaran terlebih dahulu", Toast.LENGTH_SHORT).show()
                 }
             },
-            enabled = selectedMethod.isNotEmpty(),
+            enabled = selectedMethod.isNotEmpty() && subscriptionState !is PremiumUiState.Loading,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFFF6B6B),
-                disabledContainerColor = Color(0xFFFFC0C0)
+                disabledContainerColor = Color(0xFFFFC0C0) // Warna saat disabled
             ),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text(
-                text = "Bayar",
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
+            if (subscriptionState is PremiumUiState.Loading) {
+                Text(text = "Memproses...", color = Color.White)
+            } else {
+                Text(
+                    text = "Bayar",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

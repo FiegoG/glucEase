@@ -1,7 +1,5 @@
 package com.example.uijp.data.model
 
-//deklarasi class2 dan juga atribut yang dibutuhkan untuk viewmodel
-
 data class ApiResponse<T>(
     val success: Boolean,
     val message: String? = null,
@@ -50,15 +48,5 @@ data class PaginationData(
     val hasMore: Boolean
 )
 
-data class AddBloodSugarRequest(
-    val bloodSugarLevel: Int,
-    val checkDate: String,
-    val checkTime: String
-)
 
-data class UpdateBloodSugarRequest(
-    val bloodSugarLevel: Int,
-    val checkDate: String,
-    val checkTime: String
-)
 

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.uijp.data.auth.AuthTokenManager
 import com.example.uijp.data.network.BloodSugarApiService
+import com.example.uijp.data.network.MissionApiService
 import com.example.uijp.data.network.RetrofitClient
 
 //class BloodSugarViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
@@ -53,3 +54,33 @@ class FoodTrackerViewModelFactory(private val context: Context) : ViewModelProvi
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+
+class MissionViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(MissionViewModel::class.java)) {
+            RetrofitClient.initialize(context.applicationContext)
+            val missionApiService = RetrofitClient.missionApiService
+            @Suppress("UNCHECKED_CAST")
+            return MissionViewModel(missionApiService) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}
+
+class PremiumViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(PremiumViewModel::class.java)) {
+            // Pastikan RetrofitClient sudah diinisialisasi sebelum factory ini digunakan
+            if (RetrofitClient.subscriptionApiService == null) {
+                RetrofitClient.initialize(context.applicationContext)
+            }
+            return PremiumViewModel(
+                RetrofitClient.subscriptionApiService,
+                AuthTokenManager.getInstance(context.applicationContext)
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+

@@ -69,6 +69,18 @@ object RetrofitClient {
         retrofit.create(ArticleApiService::class.java)
     }
 
+    val consultationApiService: ConsultationApiService by lazy {
+        retrofit.create(ConsultationApiService::class.java)
+    }
+
+    val missionApiService: MissionApiService by lazy {
+        retrofit.create(MissionApiService::class.java)
+    }
+
+    val subscriptionApiService: SubscriptionApiService by lazy {
+        retrofit.create(SubscriptionApiService::class.java)
+    }
+
     private fun getAuthToken(): String? {
         return authTokenManager?.getAccessToken()
     }

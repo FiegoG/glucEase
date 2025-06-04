@@ -1,18 +1,21 @@
 package com.example.uijp
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
-import com.example.konsultasiprofil.UI.Screen.KonsultasiUi
+import com.example.uijp.view.konsultasi.*
 import com.example.konsultasiprofil.UI.Screen.NotifikasiUI
 import com.example.konsultasiprofil.UI.Screen.PembayaranUI
 import com.example.konsultasiprofil.UI.Screen.PilihWaktuUI
@@ -47,6 +50,11 @@ import com.example.uijp.viewmodel.BloodSugarViewModel
 import com.example.uijp.viewmodel.BloodSugarViewModelFactory
 import com.example.uijp.viewmodel.LoginViewModel
 import com.example.uijp.viewmodel.LoginViewModelFactory
+import com.example.uijp.data.network.RetrofitClient
+import com.example.uijp.viewmodel.MissionViewModel
+import com.example.uijp.viewmodel.MissionViewModelFactory
+import com.example.uijp.viewmodel.PremiumViewModel
+import com.example.uijp.viewmodel.PremiumViewModelFactory
 
 
 class MainActivity : ComponentActivity() {
@@ -57,6 +65,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        RetrofitClient.initialize(applicationContext)
+
         enableEdgeToEdge()
         setContent {
             UijpTheme {
@@ -69,6 +80,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
 
@@ -78,6 +90,13 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
     val loginViewModelFactory = remember { LoginViewModelFactory(context.applicationContext) }
     // Buat factory untuk BloodSugarViewModel
     val bloodSugarViewModelFactory = remember { BloodSugarViewModelFactory(context.applicationContext) }
+
+    val missionViewModelFactory = remember {
+        MissionViewModelFactory(context.applicationContext) // Use context
+    }
+
+    val premiumViewModelFactory = remember { PremiumViewModelFactory(context.applicationContext) }
+    val premiumViewModel: PremiumViewModel = viewModel(factory = premiumViewModelFactory)
 
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
         composable("splash") { SplashScreen(navController) }
@@ -103,14 +122,36 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
 
         composable("reward") { KlaimReward(navController) }
         composable("gamifikasi") { GamifikasiUI(navController)}
-        composable("detailMisi") { DetailMisi(navController) }
+        composable("detailMisi/{missionId}") { backStackEntry -> // Ubah route
+
+            val missionId = backStackEntry.arguments?.getString("missionId") ?: ""
+            val missionViewModel: MissionViewModel = viewModel(factory = missionViewModelFactory)
+            if (missionId.isNotEmpty()) {
+                DetailMisi(
+                    navController = navController,
+                    missionId = missionId,
+                    missionViewModel = missionViewModel
+                )
+            }
+        }
         composable("profil") { ProfilUi(navController) }
         composable("pilihWaktu") { PilihWaktuUI(navController) }
         composable("pembayaran") { PembayaranUI(navController) }
         composable("notifikasi") { NotifikasiUI(navController) }
-        composable("premium") { GetPremiumScreen(navController) }
-        composable("premiumPrice") { PremiumPriceScreen(navController) }
-        composable("paymentMethod") { PaymentMethodScreen(navController) }
+        composable("premium") {
+            GetPremiumScreen(navController = navController, viewModel = premiumViewModel)
+        }
+        composable("premiumPrice/{packageId}") { backStackEntry -> // Terima packageId
+            val packageId = backStackEntry.arguments?.getString("packageId")?.toIntOrNull()
+            PremiumPriceScreen(
+                navController = navController,
+                viewModel = premiumViewModel,
+                packageId = packageId
+            )
+        }
+        composable("paymentMethod") {
+            PaymentMethodScreen(navController = navController, viewModel = premiumViewModel)
+        }
         composable("paymentSuccess") { PaymentSuccessScreen(navController) }
 
         composable("insert") {
@@ -133,8 +174,12 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
             DetailArtikelScreen(articleId = articleId, navController = navController)
         }
 
-        composable("detailDokter") {
-            DetailDokterUI(navController = navController)
+        composable("detailDokter/{doctorId}") { backStackEntry ->
+            val doctorId = backStackEntry.arguments?.getString("doctorId")?.toIntOrNull() ?: 0
+            DetailDokterUI(
+                navController = navController,
+                doctorId = doctorId
+            )
         }
     }
 }

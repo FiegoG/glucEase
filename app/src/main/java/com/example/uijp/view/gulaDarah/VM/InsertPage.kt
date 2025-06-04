@@ -48,47 +48,23 @@ fun InsertPages(viewModel: BloodSugarViewModel, navController: NavController) {
     // Format tanggal untuk API (yyyy-MM-dd)
     var tanggalForApi by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
 
-//    fun showDatePicker() {
-//        DatePickerDialog(
-//            ContextThemeWrapper(context, R.style.CustomDatePickerDialog),
-//            { _, year, month, dayOfMonth ->
-//                val selectedCalendar = Calendar.getInstance()
-//                selectedCalendar.set(year, month, dayOfMonth)
-//
-//                // Format untuk tampilan
-//                tanggal = SimpleDateFormat("dd MMM yyyy", Locale("id", "ID")).format(selectedCalendar.time).uppercase()
-//                // Format untuk API
-//                tanggalForApi = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedCalendar.time)
-//            },
-//            calendar.get(Calendar.YEAR),
-//            calendar.get(Calendar.MONTH),
-//            calendar.get(Calendar.DAY_OF_MONTH)
-//        ).show()
-//    }
-fun showDatePicker() {
-    DatePickerDialog(
-        ContextThemeWrapper(context, R.style.CustomDatePickerDialog),
-        { _, year, month, dayOfMonth ->
-            val selectedCalendar = Calendar.getInstance().apply {
-                set(year, month, dayOfMonth, 0, 0, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
+    fun showDatePicker() {
+        DatePickerDialog(
+            ContextThemeWrapper(context, R.style.CustomDatePickerDialog),
+            { _, year, month, dayOfMonth ->
+                val selectedCalendar = Calendar.getInstance()
+                selectedCalendar.set(year, month, dayOfMonth)
 
-            // Format untuk tampilan (pakai lokal, contoh "05 JUN 2025")
-            tanggal = SimpleDateFormat("dd MMM yyyy", Locale("id", "ID"))
-                .format(selectedCalendar.time)
-                .uppercase()
-
-            tanggalForApi = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                .format(selectedCalendar.time)
-
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    ).show()
-}
-
+                // Format untuk tampilan
+                tanggal = SimpleDateFormat("dd MMM yyyy", Locale("id", "ID")).format(selectedCalendar.time).uppercase()
+                // Format untuk API
+                tanggalForApi = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedCalendar.time)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
 
     fun showTimePicker() {
         TimePickerDialog(
@@ -209,7 +185,7 @@ fun showDatePicker() {
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(80.dp)
+                            .height(56.dp)
                             .padding(end = 31.dp),
                         shape = RoundedCornerShape(8.dp),
                         textStyle = TextStyle(fontSize = 14.sp),

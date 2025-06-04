@@ -31,6 +31,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -63,8 +64,7 @@ dependencies {
 
     // Charting library (jika dipakai)
     implementation("com.patrykandpatrick.vico:compose:1.13.0")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation(libs.places) // atau versi terbaru
+    implementation("com.google.android.material:material:1.11.0") // atau versi terbaru
 
 
     // Preview & Debug

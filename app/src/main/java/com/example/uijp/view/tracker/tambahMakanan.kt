@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -27,6 +28,8 @@ import com.example.uijp.viewmodel.FoodTrackerViewModel
 import com.example.uijp.viewmodel.FoodTrackerViewModelFactory
 import com.example.uijp.viewmodel.UiState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,9 +100,9 @@ fun TambahMakananScreen(navController: NavController) {
                 .clip(RoundedCornerShape(16.dp)),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.Gray,
-                unfocusedBorderColor = Color.LightGray,
+                unfocusedBorderColor = Color.White,
                 focusedContainerColor = Color(0xFFF6F6F6),
-                unfocusedContainerColor = Color(0xFFF6F6F6)
+                unfocusedContainerColor = Color(0xFFFFFFFF)
             ),
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
@@ -236,7 +239,7 @@ fun FoodItem(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = food.portion_detail,
+                    text = "Portion" + food.portion_detail,
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
@@ -253,7 +256,7 @@ fun FoodItem(
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                Text("Kalori: ${String.format("%.0f", food.calories)} kcal", fontSize = 12.sp, color = Color.Gray)
+                Text("Kalori: ${String.format("%.0f", food.calories)} kcal", fontSize = 8.sp, color = Color.Gray)
             }
 
             // Add Button
@@ -263,11 +266,21 @@ fun FoodItem(
                 Button(
                     onClick = onAddClick,
                     modifier = Modifier.height(32.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp)
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF67669)),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Tambah", fontSize = 12.sp)
                 }
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun PreviewTambahMakanan () {
+    val navController = rememberNavController()
+    TambahMakananScreen(navController = navController)
+
 }
