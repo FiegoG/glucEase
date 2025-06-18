@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
+    id("kotlin-kapt")
 }
 
 android {
@@ -95,8 +96,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Room
-    implementation ("androidx.room:room-runtime: 2.7.1")
-    ksp ("androidx.room:room-compiler: 2.7.1") // Gunakan ksp bukan kapt
+    implementation ("androidx.room:room-runtime:2.7.1")
+    ksp ("androidx.room:room-compiler:2.7.1") // Gunakan ksp bukan kapt
 
     // Room support for Kotlin Coroutines
     implementation ("androidx.room:room-ktx:2.7.1")

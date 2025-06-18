@@ -52,6 +52,7 @@ fun GetPremiumScreen(navController: NavController, viewModel: PremiumViewModel) 
 
     val packagesState by viewModel.premiumPackagesState.collectAsState()
 
+
     // LaunchedEffect untuk memilih paket pertama sebagai default jika ada
     LaunchedEffect(packagesState) {
         if (packagesState is PremiumUiState.Success) {

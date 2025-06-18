@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,6 +48,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.uijp.R
 import com.example.uijp.viewmodel.ArticleViewModel
+import com.example.uijp.viewmodel.ArticleViewModelFactory
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -54,7 +56,9 @@ import java.util.*
 fun DetailArtikelScreen(
     articleId: Int,
     navController: NavController,
-    viewModel: ArticleViewModel = viewModel()
+    viewModel: ArticleViewModel = viewModel(
+        factory = ArticleViewModelFactory(LocalContext.current.applicationContext)
+    )
 ) {
     val detailUiState by viewModel.detailUiState.collectAsState()
 

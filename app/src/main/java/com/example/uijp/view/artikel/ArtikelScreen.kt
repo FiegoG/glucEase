@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,13 +37,16 @@ import androidx.navigation.compose.rememberNavController
 import com.example.uijp.R
 import com.example.uijp.data.model.Article
 import com.example.uijp.viewmodel.ArticleViewModel
+import com.example.uijp.viewmodel.ArticleViewModelFactory
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
 fun ArtikelScreen(
     navController: NavController,
-    viewModel: ArticleViewModel = viewModel()
+    viewModel: ArticleViewModel = viewModel(
+        factory = ArticleViewModelFactory(LocalContext.current.applicationContext)
+    )
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

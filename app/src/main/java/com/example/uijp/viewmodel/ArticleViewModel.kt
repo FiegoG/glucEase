@@ -6,14 +6,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.uijp.data.model.Article
 import com.example.uijp.data.network.RetrofitClient
+import com.example.uijp.data.repository.ArticleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
-class ArticleViewModel : ViewModel() {
+class ArticleViewModel(private val repository: ArticleRepository) : ViewModel() {
 
-    private val apiService = RetrofitClient.articleApiService
+//    private val apiService = RetrofitClient.articleApiService
 
     // UI State untuk halaman utama artikel
     private val _uiState = MutableStateFlow(ArticleUiState())
@@ -33,93 +36,161 @@ class ArticleViewModel : ViewModel() {
 
     fun loadHomepageArticles() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            Log.d("ArticleViewModel", "Attempting to load homepage articles...")
-
-            try {
-                val response = apiService.getArticlesHomepage()
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val data = response.body()?.data
-                    Log.d("ArticleViewModel", "Homepage articles loaded successfully: $data")
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        kesehatanArticles = data?.kesehatan ?: emptyList(),
-                        lifestyleArticles = data?.lifestyle ?: emptyList(),
-                        highlightedArticle = data?.kesehatan?.firstOrNull()
-                    )
-                } else {
-                    val errorMessage = response.body()?.message ?: response.errorBody()?.string() ?: "Unknown error"
-                    Log.e("ArticleViewModel", "Failed to load homepage articles: HTTP ${response.code()} - $errorMessage")
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = errorMessage
-                    )
+            repository.getHomepageArticles()
+                .onStart {
+                    _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 }
-            } catch (e: Exception) {
-                Log.e("ArticleViewModel", "Exception loading homepage articles: ${e.message}", e)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Terjadi kesalahan: ${e.message}"
-                )
-            }
+                .catch { e ->
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Gagal memuat data: ${e.message}")
+                }
+                .collect { result ->
+                    result.onSuccess { data ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            kesehatanArticles = data.kesehatan,
+                            lifestyleArticles = data.lifestyle,
+                            highlightedArticle = data.kesehatan.firstOrNull()
+                        )
+                    }.onFailure { e ->
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = "Gagal memuat data: ${e.message}")
+                    }
+                }
         }
     }
+
+//    fun loadHomepageArticles() {
+//        viewModelScope.launch {
+//            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+//            Log.d("ArticleViewModel", "Attempting to load homepage articles...")
+//
+//            try {
+//                val response = apiService.getArticlesHomepage()
+//                if (response.isSuccessful && response.body()?.success == true) {
+//                    val data = response.body()?.data
+//                    Log.d("ArticleViewModel", "Homepage articles loaded successfully: $data")
+//                    _uiState.value = _uiState.value.copy(
+//                        isLoading = false,
+//                        kesehatanArticles = data?.kesehatan ?: emptyList(),
+//                        lifestyleArticles = data?.lifestyle ?: emptyList(),
+//                        highlightedArticle = data?.kesehatan?.firstOrNull()
+//                    )
+//                } else {
+//                    val errorMessage = response.body()?.message ?: response.errorBody()?.string() ?: "Unknown error"
+//                    Log.e("ArticleViewModel", "Failed to load homepage articles: HTTP ${response.code()} - $errorMessage")
+//                    _uiState.value = _uiState.value.copy(
+//                        isLoading = false,
+//                        error = errorMessage
+//                    )
+//                }
+//            } catch (e: Exception) {
+//                Log.e("ArticleViewModel", "Exception loading homepage articles: ${e.message}", e)
+//                _uiState.value = _uiState.value.copy(
+//                    isLoading = false,
+//                    error = "Terjadi kesalahan: ${e.message}"
+//                )
+//            }
+//        }
+//    }
 
     fun loadArticlesByCategory(category: String) {
         viewModelScope.launch {
-            _categoryUiState.value = _categoryUiState.value.copy(
-                isLoading = true,
-                error = null,
-                categoryName = category
-            )
-
-            try {
-                val response = apiService.getArticlesByGenre(category)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _categoryUiState.value = _categoryUiState.value.copy(
-                        isLoading = false,
-                        articles = response.body()?.data ?: emptyList()
-                    )
-                } else {
-                    _categoryUiState.value = _categoryUiState.value.copy(
-                        isLoading = false,
-                        error = response.body()?.message ?: "Gagal memuat artikel kategori"
-                    )
+            repository.getArticlesByGenre(category)
+                .onStart {
+                    _categoryUiState.value = _categoryUiState.value.copy(isLoading = true, error = null, categoryName = category)
                 }
-            } catch (e: Exception) {
-                _categoryUiState.value = _categoryUiState.value.copy(
-                    isLoading = false,
-                    error = "Terjadi kesalahan: ${e.message}"
-                )
-            }
+                .catch { e ->
+                    _categoryUiState.value = _categoryUiState.value.copy(isLoading = false, error = "Gagal memuat kategori: ${e.message}")
+                }
+                .collect { result ->
+                    result.onSuccess { articles ->
+                        _categoryUiState.value = _categoryUiState.value.copy(
+                            isLoading = false,
+                            articles = articles
+                        )
+                    }.onFailure { e ->
+                        _categoryUiState.value = _categoryUiState.value.copy(isLoading = false, error = "Gagal memuat kategori: ${e.message}")
+                    }
+                }
         }
     }
+
+//    fun loadArticlesByCategory(category: String) {
+//        viewModelScope.launch {
+//            _categoryUiState.value = _categoryUiState.value.copy(
+//                isLoading = true,
+//                error = null,
+//                categoryName = category
+//            )
+//
+//            try {
+//                val response = apiService.getArticlesByGenre(category)
+//                if (response.isSuccessful && response.body()?.success == true) {
+//                    _categoryUiState.value = _categoryUiState.value.copy(
+//                        isLoading = false,
+//                        articles = response.body()?.data ?: emptyList()
+//                    )
+//                } else {
+//                    _categoryUiState.value = _categoryUiState.value.copy(
+//                        isLoading = false,
+//                        error = response.body()?.message ?: "Gagal memuat artikel kategori"
+//                    )
+//                }
+//            } catch (e: Exception) {
+//                _categoryUiState.value = _categoryUiState.value.copy(
+//                    isLoading = false,
+//                    error = "Terjadi kesalahan: ${e.message}"
+//                )
+//            }
+//        }
+//    }
 
     fun loadArticleDetail(articleId: Int) {
         viewModelScope.launch {
-            _detailUiState.value = _detailUiState.value.copy(isLoading = true, error = null)
-
-            try {
-                val response = apiService.getArticleDetail(articleId)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _detailUiState.value = _detailUiState.value.copy(
-                        isLoading = false,
-                        article = response.body()?.data
-                    )
-                } else {
-                    _detailUiState.value = _detailUiState.value.copy(
-                        isLoading = false,
-                        error = response.body()?.message ?: "Gagal memuat detail artikel"
-                    )
+            repository.getArticleDetail(articleId)
+                .onStart {
+                    _detailUiState.value = _detailUiState.value.copy(isLoading = true, error = null)
                 }
-            } catch (e: Exception) {
-                _detailUiState.value = _detailUiState.value.copy(
-                    isLoading = false,
-                    error = "Terjadi kesalahan: ${e.message}"
-                )
-            }
+                .catch { e ->
+                    _detailUiState.value = _detailUiState.value.copy(isLoading = false, error = "Gagal memuat detail: ${e.message}")
+                }
+                .collect { result ->
+                    result.onSuccess { article ->
+                        _detailUiState.value = _detailUiState.value.copy(
+                            isLoading = false,
+                            article = article
+                        )
+                    }.onFailure { e ->
+                        _detailUiState.value = _detailUiState.value.copy(isLoading = false, error = "Gagal memuat detail: ${e.message}")
+                    }
+                }
         }
     }
+
+//    fun loadArticleDetail(articleId: Int) {
+//        viewModelScope.launch {
+//            _detailUiState.value = _detailUiState.value.copy(isLoading = true, error = null)
+//
+//            try {
+//                val response = apiService.getArticleDetail(articleId)
+//                if (response.isSuccessful && response.body()?.success == true) {
+//                    _detailUiState.value = _detailUiState.value.copy(
+//                        isLoading = false,
+//                        article = response.body()?.data
+//                    )
+//                } else {
+//                    _detailUiState.value = _detailUiState.value.copy(
+//                        isLoading = false,
+//                        error = response.body()?.message ?: "Gagal memuat detail artikel"
+//                    )
+//                }
+//            } catch (e: Exception) {
+//                _detailUiState.value = _detailUiState.value.copy(
+//                    isLoading = false,
+//                    error = "Terjadi kesalahan: ${e.message}"
+//                )
+//            }
+//        }
+//    }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)

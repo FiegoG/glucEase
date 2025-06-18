@@ -7,8 +7,12 @@ import com.example.uijp.data.model.ApiResponse
 import com.example.uijp.data.model.BloodSugarRecord
 import com.example.uijp.data.model.DashboardResponse
 import com.example.uijp.data.network.BloodSugarApiService
+import com.example.uijp.data.utils.toEntityList
+import com.example.uijp.data.utils.toModelList
+import com.example.uijp.data.utils.toEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -28,7 +32,8 @@ class BloodSugarRepository(
                 val dashboardData = response.body()?.data
                 if (dashboardData != null) {
                     // Simpan recentHistory ke database lokal
-                    bloodSugarDao.insertAll(dashboardData.recentHistory)
+                    val entities = dashboardData.recentHistory.toEntityList()
+                    bloodSugarDao.insertAll(entities)
                     // Emit data yang berhasil didapat
                     emit(Result.success(dashboardData))
                 } else {
@@ -54,7 +59,7 @@ class BloodSugarRepository(
                 val newRecord = response.body()?.data
                 if (newRecord != null) {
                     // Jika sukses di API, simpan juga ke database lokal
-                    bloodSugarDao.insertAll(listOf(newRecord))
+                    bloodSugarDao.insertAll(listOf(newRecord.toEntity()))
                     Result.success(newRecord)
                 } else {
                     Result.failure(Exception("Failed to add record: Data is null"))
@@ -71,7 +76,13 @@ class BloodSugarRepository(
     // Contoh untuk mengambil data riwayat dari database lokal.
     // ViewModel akan meng-observe Flow ini. UI akan selalu update.
     val recentHistory: Flow<List<BloodSugarRecord>> = bloodSugarDao.getRecentHistory(20)
+        .map { entityList ->
+            entityList.toModelList() // Konversi setiap list yang di-emit oleh Flow
+        }
 
     val allHistory: Flow<List<BloodSugarRecord>> = bloodSugarDao.getAllHistory()
+        .map { entityList ->
+            entityList.toModelList() // Konversi setiap list yang di-emit oleh Flow
+        }
 
 }
