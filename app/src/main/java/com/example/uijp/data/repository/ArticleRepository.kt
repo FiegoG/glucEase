@@ -1,5 +1,6 @@
 package com.example.uijp.data.repository
 
+import android.util.Log
 import com.example.uijp.data.local.dao.ArticleDao
 import com.example.uijp.data.model.Article
 import com.example.uijp.data.model.ArticleHomepageData
@@ -8,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import com.example.uijp.data.local.entity.ArticleEntity
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 class ArticleRepository(
     private val apiService: ArticleApiService,
@@ -39,76 +42,67 @@ class ArticleRepository(
     )
 
     // Fungsi untuk mendapatkan data homepage
-    fun getHomepageArticles(): Flow<Result<ArticleHomepageData>> = flow {
-        try {
-            // 1. Ambil data dari API
-            val response = apiService.getArticlesHomepage()
-            if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()!!.data
-                // 2. Simpan data ke database Room
-                articleDao.upsertAll(data.kesehatan.map { it.toEntity() })
-                articleDao.upsertAll(data.lifestyle.map { it.toEntity() })
+    fun getHomepageArticles(): Flow<ArticleHomepageData> {
+        // 1. Kombinasikan flow dari DAO. Ini akan menjadi sumber data utama.
+        val kesehatanFlow = articleDao.getArticlesByGenre("kesehatan")
+        val lifestyleFlow = articleDao.getArticlesByGenre("lifestyle")
+
+        return combine(kesehatanFlow, lifestyleFlow) { kesehatan, lifestyle ->
+            ArticleHomepageData(
+                kesehatan = kesehatan.map { it.toDomain() },
+                lifestyle = lifestyle.map { it.toDomain() }
+            )
+        }.onStart {
+            // 2. Saat flow ini mulai dikoleksi (onStart), trigger refresh dari network.
+            // Ini tidak akan memblokir flow utama dari DAO.
+            try {
+                val response = apiService.getArticlesHomepage()
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val data = response.body()!!.data
+                    // 3. Simpan data baru ke database.
+                    // Room akan secara otomatis memberi tahu flow di atas untuk emit data baru.
+                    articleDao.upsertAll(data.kesehatan.map { it.toEntity() })
+                    articleDao.upsertAll(data.lifestyle.map { it.toEntity() })
+                }
+            } catch (e: Exception) {
+                // Tangani error network di sini, misalnya dengan logging.
+                // Flow dari database akan tetap berjalan dengan data cache yang ada.
+                Log.e("ArticleRepository", "Failed to refresh homepage articles: ${e.message}")
             }
-
-            // 3. Ambil data dari database dan pancarkan (emit)
-            // Menggabungkan dua flow (kesehatan dan lifestyle) dari database menjadi satu
-            val kesehatanFlow = articleDao.getArticlesByGenre("Kesehatan")
-            val lifestyleFlow = articleDao.getArticlesByGenre("Lifestyle")
-
-            combine(kesehatanFlow, lifestyleFlow) { kesehatan, lifestyle ->
-                Result.success(
-                    ArticleHomepageData(
-                        kesehatan = kesehatan.map { it.toDomain() },
-                        lifestyle = lifestyle.map { it.toDomain() }
-                    )
-                )
-            }.collect {
-                emit(it) // emit hasil kombinasi
-            }
-
-        } catch (e: Exception) {
-            // Jika network gagal, coba ambil dari cache dan emit sebagai error
-            emit(Result.failure(e))
         }
     }
 
     // Fungsi untuk mendapatkan artikel berdasarkan kategori
-    fun getArticlesByGenre(genre: String): Flow<Result<List<Article>>> = flow {
-        try {
-            // 1. Ambil data dari API
-            val response = apiService.getArticlesByGenre(genre)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val articles = response.body()!!.data
-                // 2. Simpan ke database
-                articleDao.upsertAll(articles.map { it.toEntity() })
+    fun getArticlesByGenre(genre: String): Flow<List<Article>> {
+        return articleDao.getArticlesByGenre(genre)
+            .map { entities -> entities.map { it.toDomain() } } // Map Entity ke Domain
+            .onStart {
+                try {
+                    val response = apiService.getArticlesByGenre(genre)
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val articles = response.body()!!.data
+                        articleDao.upsertAll(articles.map { it.toEntity() })
+                    }
+                } catch (e: Exception) {
+                    Log.e("ArticleRepository", "Failed to refresh articles for genre $genre: ${e.message}")
+                }
             }
-        } catch (e: Exception) {
-            // Biarkan saja, data lama dari cache akan tetap dipancarkan
-        }
-
-        // 3. Selalu ambil dan pancarkan data dari database
-        articleDao.getArticlesByGenre(genre).collect { entities ->
-            emit(Result.success(entities.map { it.toDomain() }))
-        }
     }
 
     // Fungsi untuk mendapatkan detail artikel
-    fun getArticleDetail(articleId: Int): Flow<Result<Article?>> = flow {
-        try {
-            // 1. Ambil dari API untuk memastikan data paling update
-            val response = apiService.getArticleDetail(articleId)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val article = response.body()!!.data
-                // 2. Simpan ke database
-                articleDao.upsertAll(listOf(article.toEntity()))
+    fun getArticleDetail(articleId: Int): Flow<Article?> {
+        return articleDao.getArticleById(articleId)
+            .map { entity -> entity?.toDomain() } // Map Entity ke Domain
+            .onStart {
+                try {
+                    val response = apiService.getArticleDetail(articleId)
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val article = response.body()!!.data
+                        articleDao.upsertAll(listOf(article.toEntity()))
+                    }
+                } catch (e: Exception) {
+                    Log.e("ArticleRepository", "Failed to refresh article detail $articleId: ${e.message}")
+                }
             }
-        } catch (e: Exception) {
-            // Abaikan error, biarkan cache yang bekerja
-        }
-
-        // 3. Ambil dari database dan pancarkan
-        articleDao.getArticleById(articleId).collect{ entity ->
-            emit(Result.success(entity?.toDomain()))
-        }
     }
 }

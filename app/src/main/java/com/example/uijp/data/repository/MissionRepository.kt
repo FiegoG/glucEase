@@ -53,7 +53,7 @@ class MissionRepository(
                 val missionEntities = missionDtos.map { it.toEntity() }
 
                 // 3. Hapus data lama (opsional, tergantung kebutuhan) dan simpan data baru ke Room
-                // missionDao.clearAll() // -> Uncomment jika ingin selalu mengganti semua data lama
+                 missionDao.clearAll() // -> Uncomment jika ingin selalu mengganti semua data lama
                 missionDao.insertAll(missionEntities)
                 Log.d("MissionRepository", "Missions refreshed and saved to DB.")
             } else {

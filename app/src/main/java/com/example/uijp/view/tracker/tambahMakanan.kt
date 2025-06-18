@@ -24,19 +24,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.uijp.R
 import com.example.uijp.data.model.Food
-import com.example.uijp.viewmodel.FoodTrackerViewModel
-import com.example.uijp.viewmodel.FoodTrackerViewModelFactory
 import com.example.uijp.viewmodel.UiState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
+import com.example.uijp.viewmodel.SugarTrackerViewModel
+import com.example.uijp.viewmodel.SugarTrackerViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TambahMakananScreen(navController: NavController) {
     val context = LocalContext.current
-    val viewModelFactory = remember { FoodTrackerViewModelFactory(context) }
-    val viewModel: FoodTrackerViewModel = viewModel(factory = viewModelFactory)
+    val viewModelFactory = remember { SugarTrackerViewModelFactory(context) }
+    val viewModel: SugarTrackerViewModel = viewModel(factory = viewModelFactory)
 
     // Observe states
     val foodListState by viewModel.foodListState.collectAsState()

@@ -87,5 +87,5 @@ data class UpdateQuantityRequest(
 )
 
 data class HealthStatusDetail(
-    val code: String
+    val status: String
 )

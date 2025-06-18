@@ -108,19 +108,13 @@ fun ArtikelScreen(
         }
 
         // Error State
-        uiState.error?.let { error ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
-            ) {
-                Text(
-                    text = error,
-                    modifier = Modifier.padding(16.dp),
-                    color = Color(0xFFD32F2F)
-                )
-            }
+        uiState.error?.let { errorMessage ->
+            Spacer(modifier = Modifier.height(16.dp))
+            ErrorStateComponent(
+                message = errorMessage,
+                onRetry = { viewModel.loadHomepageArticles() } // Aksi retry yang sesuai
+            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         // Terpopuler/Terbaru Section
@@ -353,6 +347,46 @@ private fun formatDate(dateString: String): String {
         "Tanggal tidak tersedia"
     }
 }
+
+@Composable
+fun ErrorStateComponent(message: String, onRetry: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Gagal memuat data",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color(0xFFD32F2F)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = message, // Menampilkan pesan error dinamis dari ViewModel
+                fontSize = 14.sp,
+                color = Color(0xFF7A7A7A),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onRetry, // Memanggil fungsi retry
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFF67669)
+                )
+            ) {
+                Text("Coba Lagi", color = Color.White)
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewArtikelScreen() {

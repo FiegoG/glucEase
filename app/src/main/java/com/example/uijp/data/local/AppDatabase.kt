@@ -50,7 +50,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "sugar_tracker_database"
                 )
-                    .fallbackToDestructiveMigration() // Hati-hati: ini akan menghapus DB jika skema berubah
+                    .fallbackToDestructiveMigration(true) // Hati-hati: ini akan menghapus DB jika skema berubah
                     .build()
                 INSTANCE = instance
                 instance

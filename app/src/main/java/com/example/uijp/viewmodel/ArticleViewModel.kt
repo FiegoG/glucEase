@@ -41,19 +41,18 @@ class ArticleViewModel(private val repository: ArticleRepository) : ViewModel() 
                     _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 }
                 .catch { e ->
+                    // Catch ini sekarang untuk error dari flow itu sendiri (misal: error database)
                     _uiState.value = _uiState.value.copy(isLoading = false, error = "Gagal memuat data: ${e.message}")
                 }
-                .collect { result ->
-                    result.onSuccess { data ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            kesehatanArticles = data.kesehatan,
-                            lifestyleArticles = data.lifestyle,
-                            highlightedArticle = data.kesehatan.firstOrNull()
-                        )
-                    }.onFailure { e ->
-                        _uiState.value = _uiState.value.copy(isLoading = false, error = "Gagal memuat data: ${e.message}")
-                    }
+                .collect { data -> // Tidak ada lagi Result.onSuccess/onFailure
+                    Log.d("ArticleVM", "Data diterima! Kesehatan: ${data.kesehatan.size}, Lifestyle: ${data.lifestyle.size}")
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        kesehatanArticles = data.kesehatan,
+                        lifestyleArticles = data.lifestyle,
+                        highlightedArticle = data.kesehatan.firstOrNull()
+                    )
                 }
         }
     }
@@ -93,26 +92,24 @@ class ArticleViewModel(private val repository: ArticleRepository) : ViewModel() 
 //    }
 
     fun loadArticlesByCategory(category: String) {
+        val lowerCaseCategory = category.lowercase()
         viewModelScope.launch {
-            repository.getArticlesByGenre(category)
+            repository.getArticlesByGenre(lowerCaseCategory)
                 .onStart {
                     _categoryUiState.value = _categoryUiState.value.copy(isLoading = true, error = null, categoryName = category)
                 }
                 .catch { e ->
                     _categoryUiState.value = _categoryUiState.value.copy(isLoading = false, error = "Gagal memuat kategori: ${e.message}")
                 }
-                .collect { result ->
-                    result.onSuccess { articles ->
-                        _categoryUiState.value = _categoryUiState.value.copy(
-                            isLoading = false,
-                            articles = articles
-                        )
-                    }.onFailure { e ->
-                        _categoryUiState.value = _categoryUiState.value.copy(isLoading = false, error = "Gagal memuat kategori: ${e.message}")
-                    }
+                .collect { articles ->
+                    _categoryUiState.value = _categoryUiState.value.copy(
+                        isLoading = false,
+                        articles = articles
+                    )
                 }
         }
     }
+
 
 //    fun loadArticlesByCategory(category: String) {
 //        viewModelScope.launch {
@@ -153,15 +150,11 @@ class ArticleViewModel(private val repository: ArticleRepository) : ViewModel() 
                 .catch { e ->
                     _detailUiState.value = _detailUiState.value.copy(isLoading = false, error = "Gagal memuat detail: ${e.message}")
                 }
-                .collect { result ->
-                    result.onSuccess { article ->
-                        _detailUiState.value = _detailUiState.value.copy(
-                            isLoading = false,
-                            article = article
-                        )
-                    }.onFailure { e ->
-                        _detailUiState.value = _detailUiState.value.copy(isLoading = false, error = "Gagal memuat detail: ${e.message}")
-                    }
+                .collect { article ->
+                    _detailUiState.value = _detailUiState.value.copy(
+                        isLoading = false,
+                        article = article
+                    )
                 }
         }
     }

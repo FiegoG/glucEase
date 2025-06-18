@@ -37,7 +37,7 @@ data class DailyDataPoint(
 
 data class AiAnalysis(
     @SerializedName("kesimpulan") val kesimpulan: String?,
-    @SerializedName("saran") val saran: List<String>?,
+    @SerializedName("saran") val saran: String?,
     @SerializedName("peringatan") val peringatan: String?
 )
 

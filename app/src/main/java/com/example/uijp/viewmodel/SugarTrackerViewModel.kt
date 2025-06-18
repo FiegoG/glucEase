@@ -24,6 +24,9 @@ class SugarTrackerViewModel(
     private val _foodListState = MutableStateFlow<UiState<List<Food>>>(UiState.Loading)
     val foodListState: StateFlow<UiState<List<Food>>> = _foodListState
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+
     // State untuk loading actions
     private val _isActionLoading = MutableStateFlow(false)
     val isActionLoading: StateFlow<Boolean> = _isActionLoading
@@ -65,7 +68,16 @@ class SugarTrackerViewModel(
         }
     }
 
-    fun addFoodToTracker(foodId: Int) {
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun searchFoods(query: String) {
+        _searchQuery.value = query
+        loadFoodList(if (query.isBlank()) null else query)
+    }
+
+    fun addFoodToTracker(foodId: Int, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _isActionLoading.value = true
             try {
@@ -74,6 +86,7 @@ class SugarTrackerViewModel(
                     _message.value = response.message
                     // Refresh daily tracker setelah menambah makanan
                     loadDailyTracker()
+                    onSuccess()
                 } else {
                     _message.value = response.message ?: "Gagal menambahkan makanan"
                 }
@@ -89,7 +102,7 @@ class SugarTrackerViewModel(
         viewModelScope.launch {
             _isActionLoading.value = true
             try {
-                val response = apiService.updateFoodQuantity(intakeId, UpdateQuantityRequest(quantity))
+                val response = repository.updateFoodQuantity(intakeId, quantity)
                 if (response.isSuccessful && response.body()?.success == true) {
                     _message.value = "Quantity berhasil diperbarui"
                     // Refresh daily tracker setelah update quantity
@@ -109,7 +122,7 @@ class SugarTrackerViewModel(
         viewModelScope.launch {
             _isActionLoading.value = true
             try {
-                val response = apiService.removeFoodFromTracker(intakeId)
+                val response = repository.removeFoodFromTracker(intakeId)
                 if (response.isSuccessful && response.body()?.success == true) {
                     _message.value = "Makanan berhasil dihapus"
                     // Refresh daily tracker setelah hapus makanan

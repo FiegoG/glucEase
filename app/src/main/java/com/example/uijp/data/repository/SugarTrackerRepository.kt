@@ -1,5 +1,6 @@
 package com.example.uijp.data.repository
 
+import android.util.Log
 import com.example.uijp.data.local.dao.SugarTrackerDao
 import com.example.uijp.data.local.entity.ConsumedFoodEntity
 import com.example.uijp.data.local.entity.DailySummaryEntity
@@ -9,6 +10,7 @@ import com.example.uijp.viewmodel.UiState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -19,44 +21,60 @@ class SugarTrackerRepository(
 
     // Fungsi utama untuk mendapatkan data tracker
     fun getDailyTracker(date: String?): Flow<UiState<SugarTrackerData>> = flow {
+        val tag = "RepoDebug"
         emit(UiState.Loading)
 
         val targetDate = date ?: getCurrentDate()
+        Log.d(tag, "1. getDailyTracker DIMULAI untuk tanggal: $targetDate")
 
-        // 1. Ambil data dari cache (Room) terlebih dahulu
-        val cachedDataFlow = dao.getDailyTracker(targetDate)
-        val cachedData = cachedDataFlow.first() // Ambil nilai pertama dari flow
+        // 1. Ambil data dari cache
+        val cachedData = dao.getDailyTracker(targetDate).first()
         if (cachedData != null) {
+            Log.d(tag, "2. Data ditemukan di cache. Mengirimkan data cache ke UI.")
             emit(UiState.Success(mapEntityToData(cachedData)))
+        } else {
+            Log.d(tag, "2. Cache kosong untuk tanggal $targetDate.")
         }
 
-        // 2. Ambil data dari network (API)
+        // 2. Ambil data dari network
         try {
+            Log.d(tag, "3. Mencoba mengambil data dari API...")
             val response = apiService.getDailyTracker(date)
+
             if (response.isSuccessful && response.body()?.success == true) {
                 val remoteData = response.body()!!.data
+                Log.d(tag, "4. API SUKSES. Menerima data untuk tanggal: ${remoteData.date}")
+
                 // 3. Simpan data baru ke Room
+                Log.d(tag, "5. Memanggil dao.syncDailyTracker...")
                 dao.syncDailyTracker(
                     targetDate,
                     mapSummaryToEntity(remoteData.summary, remoteData.date),
                     mapConsumedFoodsToEntities(remoteData.consumed_foods, remoteData.date)
                 )
+                Log.d(tag, "6. dao.syncDailyTracker SELESAI.")
 
-                // 4. Emit data baru dari database (sumber kebenaran)
+                // 4. Emit data baru dari database
+                Log.d(tag, "7. Membaca ulang data dari DB setelah sync...")
                 val freshData = dao.getDailyTracker(targetDate).first()
                 if (freshData != null) {
+                    Log.d(tag, "8. SUKSES membaca ulang data. Mengirimkan data baru ke UI.")
                     emit(UiState.Success(mapEntityToData(freshData)))
-                } else if (cachedData == null) {
-                    // Jika data cache & data baru sama-sama null
-                    emit(UiState.Error("Data tidak ditemukan."))
+                } else {
+                    Log.d(tag, "8. FATAL: Gagal membaca ulang data setelah sync. freshData adalah NULL.")
+                    if (cachedData == null) {
+                        emit(UiState.Error("Data tidak ditemukan."))
+                    }
                 }
             } else {
-                if (cachedData == null) { // Hanya tampilkan error jika tidak ada cache sama sekali
-                    emit(UiState.Error(response.body()?.message ?: "Gagal memuat data"))
+                Log.e(tag, "4. API GAGAL. Pesan: ${response.body()?.message}")
+                if (cachedData == null) {
+                    emit(UiState.Error(response.body()?.message ?: "Gagal memuat data dari server"))
                 }
             }
         } catch (e: Exception) {
-            if (cachedData == null) { // Hanya tampilkan error jika tidak ada cache sama sekali
+            Log.e(tag, "3. KESALAHAN JARINGAN: ${e.message}")
+            if (cachedData == null) {
                 emit(UiState.Error(e.message ?: "Terjadi kesalahan jaringan"))
             }
         }
@@ -72,6 +90,14 @@ class SugarTrackerRepository(
 
     // Fungsi lainnya (update, remove) bisa mengikuti pola yang sama
     // ...
+    suspend fun updateFoodQuantity(intakeId: Int, quantity: Int): Response<ApiResponse<String>> {
+        return apiService.updateFoodQuantity(intakeId, UpdateQuantityRequest(quantity))
+    }
+
+    suspend fun removeFoodFromTracker(intakeId: Int): Response<ApiResponse<String>> {
+        return apiService.removeFoodFromTracker(intakeId)
+    }
+
 
     // --- Helper & Mapper Functions ---
 
@@ -92,7 +118,7 @@ class SugarTrackerRepository(
                 total_records = entity.consumedFoods.size,
                 recommended_daily_intake = entity.summary.recommended_daily_intake,
                 percentage_of_recommendation = entity.summary.percentage_of_recommendation,
-                health_status = HealthStatusDetail(code = entity.summary.health_status_code)
+                health_status = HealthStatusDetail(status = entity.summary.health_status_code)
             ),
             consumed_foods = entity.consumedFoods.map {
                 ConsumedFood(
@@ -119,7 +145,7 @@ class SugarTrackerRepository(
             total_protein = summary.total_protein,
             recommended_daily_intake = summary.recommended_daily_intake,
             percentage_of_recommendation = summary.percentage_of_recommendation,
-            health_status_code = summary.health_status.code
+            health_status_code = summary.health_status.status
         )
     }
 

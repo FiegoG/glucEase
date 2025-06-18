@@ -43,7 +43,7 @@ fun RingkasanGulaSection(sugarIntakeDetail: HealthReportDetail?) { // Terima Hea
 
             if (!aiAnalysis.saran.isNullOrEmpty()) {
                 Text("Disarankan untuk:", fontWeight = FontWeight.Bold)
-                aiAnalysis.saran.forEach { BulletPoint(it) }
+                aiAnalysis.saran
             }
             aiAnalysis.peringatan?.let {
                 Spacer(modifier = Modifier.height(4.dp))

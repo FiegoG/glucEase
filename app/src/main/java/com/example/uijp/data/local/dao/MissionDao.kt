@@ -25,4 +25,5 @@ interface MissionDao {
     // Menghapus semua misi dari tabel. Berguna saat refresh data.
     @Query("DELETE FROM missions")
     suspend fun clearAll()
+
 }

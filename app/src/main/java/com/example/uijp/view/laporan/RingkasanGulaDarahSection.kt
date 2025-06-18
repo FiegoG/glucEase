@@ -41,7 +41,7 @@ fun RingkasanGulaDarahSection(bloodSugarDetail: HealthReportDetail?) { // Terima
 
             if (!aiAnalysis.saran.isNullOrEmpty()) {
                 Text("Disarankan untuk:", fontWeight = FontWeight.Bold)
-                aiAnalysis.saran.forEach { BulletPoint(it) }
+                aiAnalysis.saran
             }
             aiAnalysis.peringatan?.let {
                 Spacer(modifier = Modifier.height(4.dp))

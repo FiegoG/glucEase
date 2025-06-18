@@ -30,8 +30,8 @@ interface SugarTrackerDao {
     // Wrapper untuk sinkronisasi data dari API
     @Transaction
     suspend fun syncDailyTracker(date: String, summary: DailySummaryEntity, foods: List<ConsumedFoodEntity>) {
-        insertDailySummary(summary)
         clearConsumedFoodsByDate(date)
+        insertDailySummary(summary)
         insertConsumedFoods(foods)
     }
 }
