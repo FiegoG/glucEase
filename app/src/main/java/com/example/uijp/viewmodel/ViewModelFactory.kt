@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.uijp.data.auth.AuthTokenManager
+import com.example.uijp.data.local.AppDatabase
 import com.example.uijp.data.network.BloodSugarApiService
 import com.example.uijp.data.network.MissionApiService
 import com.example.uijp.data.network.RetrofitClient
+import com.example.uijp.data.repository.SugarTrackerRepository
 
 //class BloodSugarViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
 //    @Suppress("UNCHECKED_CAST")
@@ -34,10 +36,12 @@ class LoginViewModelFactory(private val context: Context) : ViewModelProvider.Fa
 class SugarTrackerViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SugarTrackerViewModel::class.java)) {
-            // Initialize RetrofitClient dengan context jika belum
-            RetrofitClient.initialize(context)
+            // Inisialisasi dependensi di sini
+            val apiService = RetrofitClient.sugarTrackerApiService
+            val dao = AppDatabase.getInstance(context).sugarTrackerDao()
+            val repository = SugarTrackerRepository(apiService, dao)
             @Suppress("UNCHECKED_CAST")
-            return SugarTrackerViewModel() as T
+            return SugarTrackerViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

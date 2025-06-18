@@ -4,11 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.uijp.data.model.*
 import com.example.uijp.data.network.RetrofitClient
+import com.example.uijp.data.repository.SugarTrackerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class SugarTrackerViewModel : ViewModel() {
+class SugarTrackerViewModel(
+    private val repository: SugarTrackerRepository
+) : ViewModel() {
 
     private val apiService = RetrofitClient.sugarTrackerApiService
 
@@ -34,20 +38,9 @@ class SugarTrackerViewModel : ViewModel() {
 
     fun loadDailyTracker(date: String? = null) {
         viewModelScope.launch {
-            _dailyTrackerState.value = UiState.Loading
-            try {
-                val response = apiService.getDailyTracker(date)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _dailyTrackerState.value = UiState.Success(response.body()!!.data)
-                } else {
-                    _dailyTrackerState.value = UiState.Error(
-                        response.body()?.message ?: "Gagal memuat data tracker"
-                    )
-                }
-            } catch (e: Exception) {
-                _dailyTrackerState.value = UiState.Error(
-                    e.message ?: "Terjadi kesalahan saat memuat data"
-                )
+            // Cukup panggil repository, ia yang akan handle loading, success, error
+            repository.getDailyTracker(date).collectLatest { uiState ->
+                _dailyTrackerState.value = uiState
             }
         }
     }
@@ -76,13 +69,13 @@ class SugarTrackerViewModel : ViewModel() {
         viewModelScope.launch {
             _isActionLoading.value = true
             try {
-                val response = apiService.addFoodToTracker(AddFoodRequest(foodId))
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _message.value = response.body()!!.message
+                val response = repository.addFoodToTracker(foodId)
+                if (response.success) {
+                    _message.value = response.message
                     // Refresh daily tracker setelah menambah makanan
                     loadDailyTracker()
                 } else {
-                    _message.value = response.body()?.message ?: "Gagal menambahkan makanan"
+                    _message.value = response.message ?: "Gagal menambahkan makanan"
                 }
             } catch (e: Exception) {
                 _message.value = e.message ?: "Terjadi kesalahan saat menambahkan makanan"

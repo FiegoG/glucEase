@@ -10,9 +10,11 @@ import com.example.uijp.data.model.ChartDataItem
 import com.example.uijp.data.model.SummaryData
 import com.example.uijp.data.network.BloodSugarApiService
 import com.example.uijp.data.network.RetrofitClient
+import com.example.uijp.data.repository.BloodSugarRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.Response
 
@@ -29,19 +31,31 @@ data class BloodSugarUiState(
     val currentUserId: String? = null
 )
 
-class BloodSugarViewModel(private val context: Context) : ViewModel() {
+class BloodSugarViewModel(
+    private val repository: BloodSugarRepository,
+    private val authTokenManager: AuthTokenManager,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BloodSugarUiState())
     val uiState: StateFlow<BloodSugarUiState> = _uiState.asStateFlow()
 
-    private val authTokenManager = AuthTokenManager.getInstance(context)
-    private val apiService = RetrofitClient.bloodSugarApiService
+        private val apiService = RetrofitClient.bloodSugarApiService
 
     init {
-        RetrofitClient.initialize(context)
+//        RetrofitClient.initialize(context)
         checkUserAuth()
         if (authTokenManager.isLoggedIn()) {
             loadDashboardData()
+            observeLocalHistory()
+        }
+    }
+
+    private fun observeLocalHistory() {
+        viewModelScope.launch {
+            repository.recentHistory.collect { localRecentHistory ->
+                // Update UI State dengan data dari database lokal
+                _uiState.update { it.copy(recentHistory = localRecentHistory) }
+            }
         }
     }
 
@@ -64,37 +78,63 @@ class BloodSugarViewModel(private val context: Context) : ViewModel() {
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            try {
-                val response = apiService.getDashboardData()
-
-                if (response.isSuccessful) {
-                    val apiResponse = response.body()
-                    if (apiResponse?.success == true && apiResponse.data != null) {
-                        _uiState.value = _uiState.value.copy(
+            repository.getDashboardData().collect { result ->
+                result.onSuccess { dashboardData ->
+                    // Data dari API (termasuk chart & summary) digunakan untuk update UI.
+                    // recentHistory dari API sudah disimpan ke Room oleh repository,
+                    // dan `observeLocalHistory` akan otomatis menangkap perubahannya.
+                    _uiState.update {
+                        it.copy(
                             isLoading = false,
-                            chartData = apiResponse.data.chartData,
-                            recentHistory = apiResponse.data.recentHistory,
-                            summary = apiResponse.data.summary,
-                            errorMessage = null
-                        )
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = apiResponse?.message ?: "Failed to load data"
+                            chartData = dashboardData.chartData,
+                            summary = dashboardData.summary
                         )
                     }
-                } else {
-                    handleApiError(response.code())
+                }.onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Failed to refresh data: ${error.message}"
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Network error: ${e.message}"
-                )
             }
         }
+
+//        viewModelScope.launch {
+//            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+//
+//            try {
+//                val response = apiService.getDashboardData()
+//
+//                if (response.isSuccessful) {
+//                    val apiResponse = response.body()
+//                    if (apiResponse?.success == true && apiResponse.data != null) {
+//                        _uiState.value = _uiState.value.copy(
+//                            isLoading = false,
+//                            chartData = apiResponse.data.chartData,
+//                            recentHistory = apiResponse.data.recentHistory,
+//                            summary = apiResponse.data.summary,
+//                            errorMessage = null
+//                        )
+//                    } else {
+//                        _uiState.value = _uiState.value.copy(
+//                            isLoading = false,
+//                            errorMessage = apiResponse?.message ?: "Failed to load data"
+//                        )
+//                    }
+//                } else {
+//                    handleApiError(response.code())
+//                }
+//            } catch (e: Exception) {
+//                _uiState.value = _uiState.value.copy(
+//                    isLoading = false,
+//                    errorMessage = "Network error: ${e.message}"
+//                )
+//            }
+//        }
     }
 
     fun loadHistory(page: Int = 1, limit: Int = 20) {
@@ -106,35 +146,61 @@ class BloodSugarViewModel(private val context: Context) : ViewModel() {
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            try {
-                val response = apiService.getHistory(page, limit)
-
-                if (response.isSuccessful) {
-                    val apiResponse = response.body()
-                    if (apiResponse?.success == true && apiResponse.data != null) {
-                        _uiState.value = _uiState.value.copy(
+            repository.getDashboardData().collect { result ->
+                result.onSuccess { dashboardData ->
+                    // Data dari API (termasuk chart & summary) digunakan untuk update UI.
+                    // recentHistory dari API sudah disimpan ke Room oleh repository,
+                    // dan `observeLocalHistory` akan otomatis menangkap perubahannya.
+                    _uiState.update {
+                        it.copy(
                             isLoading = false,
-                            allHistory = apiResponse.data.records,
-                            errorMessage = null
-                        )
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = apiResponse?.message ?: "Failed to load history"
+                            chartData = dashboardData.chartData,
+                            summary = dashboardData.summary
                         )
                     }
-                } else {
-                    handleApiError(response.code())
+                }.onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Failed to refresh data: ${error.message}"
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Network error: ${e.message}"
-                )
             }
         }
+
+//        viewModelScope.launch {
+//            _uiState.value = _uiState.value.copy(isLoading = true)
+//
+//            try {
+//                val response = apiService.getHistory(page, limit)
+//
+//                if (response.isSuccessful) {
+//                    val apiResponse = response.body()
+//                    if (apiResponse?.success == true && apiResponse.data != null) {
+//                        _uiState.value = _uiState.value.copy(
+//                            isLoading = false,
+//                            allHistory = apiResponse.data.records,
+//                            errorMessage = null
+//                        )
+//                    } else {
+//                        _uiState.value = _uiState.value.copy(
+//                            isLoading = false,
+//                            errorMessage = apiResponse?.message ?: "Failed to load history"
+//                        )
+//                    }
+//                } else {
+//                    handleApiError(response.code())
+//                }
+//            } catch (e: Exception) {
+//                _uiState.value = _uiState.value.copy(
+//                    isLoading = false,
+//                    errorMessage = "Network error: ${e.message}"
+//                )
+//            }
+//        }
     }
 
     fun addBloodSugarRecord(level: Int, date: String, time: String) {
@@ -146,38 +212,60 @@ class BloodSugarViewModel(private val context: Context) : ViewModel() {
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isAddingRecord = true, errorMessage = null)
+            _uiState.update { it.copy(isAddingRecord = true, addSuccess = false) }
 
-            try {
-                val request = AddBloodSugarRequest(level, date, time)
-                val response = apiService.addRecord(request)
+            val result = repository.addBloodSugarRecord(level, date, time)
 
-                if (response.isSuccessful) {
-                    val apiResponse = response.body()
-                    if (apiResponse?.success == true) {
-                        _uiState.value = _uiState.value.copy(
-                            isAddingRecord = false,
-                            addSuccess = true,
-                            errorMessage = null
-                        )
-                        // Refresh data after adding
-                        loadDashboardData()
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            isAddingRecord = false,
-                            errorMessage = apiResponse?.message ?: "Failed to add record"
-                        )
-                    }
-                } else {
-                    handleApiError(response.code())
+            result.onSuccess {
+                _uiState.update { it.copy(isAddingRecord = false, addSuccess = true) }
+                // Data tidak perlu di-refresh manual. Karena record baru sudah
+                // ditambahkan ke Room oleh repository, `observeLocalHistory`
+                // akan otomatis memperbarui `recentHistory` di UI.
+                // Kita hanya perlu me-refresh data agregat seperti chart dan summary.
+                loadDashboardData()
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isAddingRecord = false,
+                        errorMessage = "Failed to add record: ${error.message}"
+                    )
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isAddingRecord = false,
-                    errorMessage = "Network error: ${e.message}"
-                )
             }
         }
+
+//        viewModelScope.launch {
+//            _uiState.value = _uiState.value.copy(isAddingRecord = true, errorMessage = null)
+//
+//            try {
+//                val request = AddBloodSugarRequest(level, date, time)
+//                val response = apiService.addRecord(request)
+//
+//                if (response.isSuccessful) {
+//                    val apiResponse = response.body()
+//                    if (apiResponse?.success == true) {
+//                        _uiState.value = _uiState.value.copy(
+//                            isAddingRecord = false,
+//                            addSuccess = true,
+//                            errorMessage = null
+//                        )
+//                        // Refresh data after adding
+//                        loadDashboardData()
+//                    } else {
+//                        _uiState.value = _uiState.value.copy(
+//                            isAddingRecord = false,
+//                            errorMessage = apiResponse?.message ?: "Failed to add record"
+//                        )
+//                    }
+//                } else {
+//                    handleApiError(response.code())
+//                }
+//            } catch (e: Exception) {
+//                _uiState.value = _uiState.value.copy(
+//                    isAddingRecord = false,
+//                    errorMessage = "Network error: ${e.message}"
+//                )
+//            }
+//        }
     }
 
     private fun handleApiError(code: Int) {

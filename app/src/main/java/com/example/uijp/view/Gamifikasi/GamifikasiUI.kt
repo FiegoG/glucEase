@@ -111,7 +111,7 @@ fun GamifikasiUI(navController: NavController) {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight(),
-                    contentAlignment = Alignment.CenterStart
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         "Misi Harian",
@@ -121,6 +121,10 @@ fun GamifikasiUI(navController: NavController) {
                         color = Color(0xFF181818)
                     )
                 }
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(25.dp))
